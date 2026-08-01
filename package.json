@@ -1,0 +1,22 @@
+{
+  "name": "hipcortex-chrome-extension",
+  "version": "0.1.0",
+  "description": "HipCortex Chrome Extension — persistent causal memory for the browser. Part of the AI Software Factory.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc && node scripts/copy-assets.js",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "package": "npm run build && cd dist && zip -r ../hipcortex-chrome-extension-v0.1.0.zip ."
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5",
+    "eslint": "^9.9.0"
+  },
+  "dependencies": {}
+}
