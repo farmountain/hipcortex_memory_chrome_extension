@@ -68,6 +68,12 @@ Load unpacked → select `dist/`. This is the only install path that works today
 > per-permission justifications, the reviewer instructions, and an explicit list of what is still
 > missing — is in [docs/STORE.md](./docs/STORE.md). The privacy policy is
 > [docs/PRIVACY.md](./docs/PRIVACY.md).
+>
+> A draft of the item already exists in the dashboard — *HipCortex Memory*, status **Draft**, item ID
+> `pjapbnibehgmgilenkgndfpfjkokikbl` — and its Privacy tab is filled field by field from §4–§6 of that
+> document, including the nine data-disclosure answers and the privacy-policy URL. That ID, and not
+> `eklnpdcephecmddelagbablmeajoogkf`, is the one the published extension will carry; §11 is how the
+> local build is made to answer to it.
 
 **Loaded from source, the extension ID is `eklnpdcephecmddelagbablmeajoogkf`**, because
 `public/manifest.json` pins a `key`. That is the ID of the unpacked build; the published item gets its

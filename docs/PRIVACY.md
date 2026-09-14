@@ -13,14 +13,19 @@ else, and the developer of this extension receives no data of any kind.**
 
 - **The text of AI conversations** on the sites it supports: ChatGPT, Claude, Gemini, Grok and
   DeepSeek, and only there. It reads the conversation when you are on one of those pages.
-- **The title and URL of a page**, and only when you explicitly choose "Add page to HipCortex" from
-  the right-click menu.
+- **The address and title of the page a capture comes from**, recorded with the capture so that a
+  memory can be traced back to its source. For a conversation that is the conversation's own URL;
+  it is also what is recorded when you explicitly choose "Add page to HipCortex" from the
+  right-click menu.
 - **The text you have selected**, and only when you explicitly choose "Add selection to HipCortex"
   or run the quick-add shortcut.
-- **The runtime address and options you enter**, stored as extension settings.
+- **The runtime address and options you enter**, stored as extension settings. If you enter an API
+  key for your runtime, that key is part of those settings.
 
-It does not read pages outside those five sites. It does not read your browsing history, your
-bookmarks, your downloads, your other extensions, your passwords, or your files.
+It does not read pages outside those five sites. It does not read your browser's history, your
+bookmarks, your downloads, your other extensions, your passwords, or your files. The only record it
+keeps of a page you visited is the address of a page you captured, and the Chrome Web Store listing
+declares that under "web history" rather than leaving it out.
 
 ## Where that data goes
 
@@ -39,16 +44,20 @@ the address is not saved.
 ## What the developer receives
 
 **Nothing.** The developer of this extension operates no server, receives no copy of any captured
-data, and has no way to access it. There is no account, no sign-in, no sync, no analytics, no
-telemetry, no crash reporting, no advertising identifier and no remotely fetched configuration. The
-extension contains no code fetched at runtime.
+data, and has no way to access it. There is no account, no sign-in, no developer-operated storage,
+no analytics, no telemetry, no crash reporting, no advertising identifier and no remotely fetched
+configuration. The extension contains no code fetched at runtime.
 
 ## Storage and deletion
 
 Captured conversations that have not yet been delivered sit in the extension's own local storage
-until the runtime acknowledges them, together with a local search index. Settings are stored
-separately. Conversation content is never written to browser-synced storage, so it is never copied
-to another machine by the browser.
+until the runtime acknowledges them, together with a local search index. Conversation content is
+never written to browser-synced storage, so it is never copied to another machine by the browser.
+
+Settings are stored separately, and those are synced: the runtime address, transport mode and limits
+you configure follow you to another browser you are signed in to. If you enter an API key it is part
+of those settings and is stored there as well. The extension sends that key nowhere except to the
+runtime address you set.
 
 - To remove everything the extension stores, **uninstall the extension**. Nothing is retained.
 - The local search index can be cleared from the popup without uninstalling.

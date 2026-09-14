@@ -9,7 +9,7 @@
   "stages": [
     { "stage": "goals", "entries": ["Q1", "Q14"] },
     { "stage": "acceptance-criteria", "entries": ["Q2", "Q15", "Q19"] },
-    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24", "Q25", "Q26", "Q27", "Q28"] },
+    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24", "Q25", "Q26", "Q27", "Q28", "Q29", "Q30"] },
     { "stage": "unknowns", "entries": ["Q4", "Q5", "Q11", "Q20", "Q21"] },
     { "stage": "planning", "entries": ["Q6", "Q9", "Q18"] },
     { "stage": "react-iterations", "entries": ["Q7", "Q8", "Q10", "Q16", "Q17"] }
@@ -593,6 +593,54 @@
       ],
       "resolution": "No frame contains a captured record. The search scope is left on its offline default, so no frame issues a semantic query against the runtime at all; the index reports zero records because nothing on this machine has been acknowledged yet, and the panel says so in words rather than looking broken. The quick-add field holds a sample sentence typed by the capture script and the script never submits it, so taking the pictures created no record. The API key field is empty, the actor is the default, and the capture script never calls ADD_MEMORY or QUICK_ADD_SELECTION.",
       "doesNotEstablish": "That a screenshot taken on a machine with a populated index would look the same, which is why the empty result is shipped rather than staged. It also does not establish that the frames are accepted by the store, and it does not establish that a reviewer reads a zero as a true state rather than a broken panel; every zero is labelled, so the state is legible rather than silent."
+    },
+    {
+      "id": "Q29",
+      "stage": "validation-planning",
+      "critical": true,
+      "question": "Every capture records the address of the page it came from, and durable settings live in synced storage. Does that make the extension a collector of web history and of authentication information, which the Privacy tab asks about separately?",
+      "state": "self-resolved",
+      "attempts": 2,
+      "artifactsTried": [
+        "src/schema/capture-event.ts - Provenance carries schemaVersion, provider, adapterVersion, source, conversationUrl and capturedAt, and conversationUrl is not optional, so every event carries a URL and a timestamp",
+        "src/schema/conversation.ts - Conversation carries an optional title, so a page title travels with the capture when the provider exposes one",
+        "src/types/index.ts - DEFAULT_SETTINGS carries apiKey alongside apiUrl, transportMode, autoCapture and defaultActor",
+        "src/api/transport/http.ts - the settings API key is sent as an Authorization: Bearer header, or as X-API-Key, to the configured runtime only",
+        "src/background.ts - the whole settings object is read from and written to chrome.storage.sync, so a key the user typed is stored in synced storage",
+        "src/content/entry.ts, src/popup.ts, src/sidepanel.ts and src/options.ts - searched for chrome.history and for chrome.tabs.onUpdated: no call site in any of them, so nothing is recorded about a page the user merely visited",
+        "docs/STORE.md section 5 - the data-usage table this question exists to correct, which previously answered no to web history and folded authentication into a no row"
+      ],
+      "evidence": [
+        "$ git grep -n -E \"chrome\\.history|tabs\\.onUpdated\" -- src -> no matches",
+        "$ git grep -c -E \"storage\\.(sync|local|session)\" -- src -> 21 matches across 8 files, all in the worker and the surfaces, none of them logging a URL",
+        "$ git grep -c apiKey -- src -> 16 matches across 4 files: src/types/index.ts where it is a field of DEFAULT_SETTINGS, src/options.ts where it is typed in, src/api/transport/http.ts where it becomes a request header, and src/api/transport/factory.ts",
+        "$ npx vitest run tests/quality/store.spec.ts -> 27 passed, ten of them new: every paste-ready block within its 1000-character limit, the nine disclosure categories present exactly once, personal communications, website content and web history required to be yes, and authentication required to be yes only while apiKey remains a settings field",
+        "$ npm run verify -> Test Files 55 passed, Tests 863 passed, exit 0"
+      ],
+      "resolution": "Both are declared yes, with the reason written beside each answer rather than left implicit. The recorded conversation address, its title and its timestamp are exactly what the form enumerates under web history, so answering no there would have been a false declaration; nothing else about the user's browsing is recorded, and the policy says so. Authentication information is declared because a runtime API key can be entered in the options page, is part of the synced settings object, and is sent as a request header. The two changed rows carry an explanatory note each, and a test pins the authentication answer to the presence of the apiKey field so the day the key stops being stored is the day the test fails rather than the day the listing goes stale.",
+      "doesNotEstablish": "That the reviewer accepts the two judgement calls; the store's category boundaries are its own and no artifact here can settle them. It also does not establish that the declarations stay true if a future change stores a URL without a capture or moves the settings object into local storage, which is why the authentication answer is pinned to a test and the web-history reasoning names the field it depends on."
+    },
+    {
+      "id": "Q30",
+      "stage": "validation-planning",
+      "critical": true,
+      "question": "The dashboard reports the single-purpose box holding 129 characters, which is exactly the length of the manifest description. Is that the listing description pasted into the wrong field, and what belongs in the box instead?",
+      "state": "self-resolved",
+      "attempts": 1,
+      "artifactsTried": [
+        "public/manifest.json - description is 129 characters, and the dashboard's counter for the single-purpose box reads 129",
+        "docs/STORE.md section 3 - the listing copy, which the manifest description is copied from, so the two cannot drift",
+        "docs/STORE.md section 6 - the permission table the justification blocks have to agree with, one row per permission plus two host rows",
+        "tests/quality/store.spec.ts - the section helper slices from a heading to the next level-two heading, so any new field heading at level three or four stays inside the section it belongs to"
+      ],
+      "evidence": [
+        "$ length of public/manifest.json description -> 129, against a store limit of 132",
+        "$ node .scratch/measure-blocks.mjs -> ten blocks, every one within 1000 characters, the longest the host-permission block at 988",
+        "$ npx vitest run tests/quality/store.spec.ts -> 27 passed",
+        "$ npm run install:host -- --dry-run -> allowed_origins chrome-extension://eklnpdcephecmddelagbablmeajoogkf/, the ID the pinned key derives, while the dashboard draft item reports pjapbnibehgmgilenkgndfpfjkokikbl"
+      ],
+      "resolution": "Treated as a mis-paste and replaced. The box asks what the extension does and why, so it now carries a purpose statement naming the five sites, the local runtime as the only destination, and the user as the only person the data belongs to; the shipping description stays where it belongs, in the listing title and summary. Eleven paste-ready fields were added to docs/STORE.md, one per box the dashboard shows as empty plus the remote-code answer and the policy URL, each under its own heading with a fenced block directly beneath so a test can extract it and measure it. The work also surfaced a real divergence: the local unpacked build answers to the ID the pinned key derives, the published item will answer to the ID the dashboard already assigned it, and section 11 is where the two are reconciled.",
+      "doesNotEstablish": "That the dashboard's counter was measuring the description field rather than the purpose box - the lengths match and the box is empty of anything else, which is a strong inference rather than a reading of the form's state. It also does not establish that the reviewer accepts the purpose statement's scope, and it does not establish that the eleven blocks are the whole list of empty fields, because the dashboard can add one."
     }
   ]
 }

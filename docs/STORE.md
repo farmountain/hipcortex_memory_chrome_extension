@@ -176,41 +176,79 @@ Your conversations are already being written, by you, in five different places. 
 
 ## 4. Privacy — single purpose
 
-The dashboard requires a single-purpose statement. It is reviewed against the permissions.
+The dashboard requires a single-purpose statement, in a box that allows 1,000 characters. It is
+reviewed against the permission list, so it has to say what the extension reads and where the data
+goes. What follows is the box's text and nothing else.
+
+**The box is already occupied, and it holds the wrong text.** The form reports 129 characters in it,
+which is exactly the length of the short description in §3. If that is what is in there, replace it:
+the short description is listing copy for the item page, while this box is the statement a reviewer
+reads against the seven permission justifications, and the short description does not say what
+happens to a captured conversation. The text below uses the room the box has.
+
+#### Single purpose description
 
 ```
-Capture the AI conversations the user has in the browser and deliver them, unchanged, to a HipCortex runtime the user runs on their own machine. The extension does not analyse, summarise, rank or retain those conversations itself.
+Capture the AI conversations a user reads and writes in their browser, and deliver them unchanged to a HipCortex runtime the user runs on their own computer. The extension reads conversation text on the five AI sites it supports, plus a page's title and URL or the user's selected text when the user explicitly captures one. It forwards that content over native messaging or loopback HTTP to the user's own runtime, and keeps it in local storage only until that runtime acknowledges delivery. The extension does not analyse, summarise, rank, index or retain conversation content for itself, sends nothing to the developer, and declares no remote destination. There is no server operated by the developer, no account, no sign-in, no sync and no analytics.
 ```
 
 ## 5. Privacy — data disclosure
 
-The disclosure form asks which categories of user data the extension accesses, and then asks for a
-justification in free text. Every free-text box must say the same thing, because it is the thing
-that is true: **the destination is the user's own machine, and the developer receives nothing.**
+The data-usage section is nine checkboxes, and the answers are displayed publicly on the item page.
+They are answered by what the extension demonstrably reads or stores, not by where the data ends up,
+because Chrome's form has no "on-device only" answer and answering "no" to data an extension
+demonstrably reads is the failure mode that gets a submission rejected.
 
-| Category | Declared | Justification |
+| The form's category | Answer | What it covers, and why |
 |---|---|---|
-| Personal communications | **yes** | Conversation turns on the five supported sites. Stored in the extension's own local queue and index, and delivered to a runtime on the user's own machine over loopback or native messaging. Never sent to the developer. |
-| Website content | **yes** | The page's title and URL, only when the user explicitly captures a page from the context menu. Same destination. |
-| User activity | no | The extension does not read or record browsing activity outside the five supported sites. |
-| Web history | no | No history API is used and no visited URLs are recorded. |
-| Location, health, financial, authentication, personally identifiable information | no | Not read, not inferred, not transmitted. |
+| Personally identifiable information | no | No name, address, email address, age or identification number is read. The extension has no account and no sign-in, so there is nothing of this kind for it to hold. The `defaultActor` setting is a free-text label the user chooses for their own records; it defaults to `browser-user` and is not an identity. |
+| Health information | no | Not read, not inferred, not requested. |
+| Financial and payment information | no | Not read, not inferred, not requested. The extension has no payment path of any kind. |
+| Authentication information | **yes** | The options page has an optional **API key** field, and a non-empty value is sent to the configured runtime as `Authorization: Bearer` and `X-API-Key`. It is blank by default and no AI-site credential is ever read. It is declared rather than omitted for one reason worth knowing: settings live in `chrome.storage.sync`, so a key the user enters reaches the user's own Google account. See the note below. |
+| Personal communications | **yes** | The conversation turns on the five supported sites — what the user typed and what the model replied. Held in the extension's own local queue and search index until the runtime acknowledges delivery, then not kept. Delivered over native messaging or loopback HTTP to a runtime on the user's own computer. Never sent to the developer, who operates no server. |
+| Location | no | No region, IP address, GPS coordinate or nearby-device information is read or inferred. The only addresses the manifest pre-authorises are `127.0.0.1` and `localhost`. |
+| Web history | **yes** | Every capture carries the conversation's canonical URL, its title when the provider exposes one, and the capture timestamp, and the form's own definition of this category is the pages a user visited together with associated data such as page title and time of visit. Nothing outside the five supported sites is recorded, the history API is not used, and a URL is stored only for a page the user captured — or, with the opt-in auto-capture setting on, a page on one of those five sites. |
+| User activity | no | No network monitoring, click, mouse position, scroll or keystroke is recorded, and `chrome.tabs.onUpdated` has no call site. The extension's only observation is of the conversation DOM on the five supported sites, which is the thing it exists to read. |
+| Website content | **yes** | The text of the conversation page on the five supported sites; a page's title and URL when the user chooses *Add page to HipCortex*; and the current text selection when the user runs quick-add or *Add selection to HipCortex*. Read from the page, stored locally, delivered to the user's own runtime. No page outside the five sites is read unless the user selects text on it and invokes quick-add. |
+
+**Two of those answers are judgment calls, and they are the two that changed.** The extension's
+previous draft answered `no` to both. *Web history* is `yes` because `Provenance.conversationUrl` is
+a required field of the capture contract, so the URL of the captured page is stored on every capture
+along with a title and a timestamp — data the form enumerates under that heading. *Authentication
+information* is `yes` because the options page holds a credential field. Both are answered `yes` so
+that the declaration is a superset of what the code does rather than a subset, which is the direction
+the risk runs in: an undeclared category is a policy violation, an over-declared one is a sentence of
+explanation. The account owner can flip either back after reading the reasoning here.
+
+**One consequence of the API key worth acting on rather than only disclosing.** `apiKey` is part of
+`DEFAULT_SETTINGS`, and durable settings are written to `chrome.storage.sync`, so a key the user
+enters is uploaded to that user's own Google account. Nothing else in the settings is secret, and
+conversation content never enters `sync`. Moving the key to `chrome.storage.local` would remove the
+exposure at the cost of not following the user to a second machine. That is a product decision and it
+is recorded here rather than made quietly.
 
 Certifications, and why each is true rather than merely ticked:
 
 | Certification | True because |
 |---|---|
-| Not sold to third parties | There is no third party. The developer operates no server. |
-| Not used or transferred for purposes unrelated to the single purpose | The only destination is a runtime on the user's own machine, chosen by the user. |
+| Not sold to third parties | There is no third party. The developer operates no server and receives nothing to sell. |
+| Not used or transferred for purposes unrelated to the single purpose | The only destination is a runtime on the user's own machine, chosen by the user, and the extension has no other purpose to put data to. |
 | Not used to determine creditworthiness or for lending | Not applicable to any data this extension touches. |
 
-A privacy-policy URL is required once personal communications are declared. See
-[`docs/PRIVACY.md`](./PRIVACY.md); the URL to paste is the rendered GitHub blob link.
+**Where the data goes, for the record.** All three declared categories are stored on the user's own
+machine and delivered to a program on that machine. The developer has no way to reach any of it.
 
-**These declarations are made under the publisher account, so confirm them before submitting.**
-They are written to over-disclose: both categories above are accessed but never leave the machine,
-and Chrome's form has no "on-device only" answer. Declaring a category and explaining the destination
-is the honest reading; silently answering "no" to data the extension demonstrably reads is not.
+#### Privacy policy URL
+
+```
+https://github.com/farmountain/hipcortex_memory_chrome_extension/blob/main/docs/PRIVACY.md
+```
+
+The field accepts 2,048 characters and needs one URL, and that one is it: the rendered policy in
+this repository's default branch. It resolves today, the repository is public, and
+[`docs/PRIVACY.md`](./PRIVACY.md) is the file it renders. The policy has to describe the three
+declarations above, which is why it names the captured URL and title and the optional API key rather
+than only the conversation text.
 
 ## 6. Permission justifications
 
@@ -225,7 +263,75 @@ site breaks the feature; adding one without a row here fails `tests/quality/stor
 | `sidePanel` | Renders the side panel and opens it for the current window when the user presses Ctrl+Shift+H. | `src/background.ts`, `src/popup.ts` |
 | `scripting` | Reads the current selection with `executeScript` when the user runs the quick-add command. It injects no code that the extension did not ship. | `src/background.ts` |
 | `nativeMessaging` | The default transport. Consumer Mode talks to the HipCortex Desktop app through the host `com.hipcortex.bridge`, which the desktop app registers; the extension cannot register it and says so when it is missing. | `src/api/transport/native.ts` |
-| `alarms` | Drives the periodic queue drain. A surface worker is terminated when idle, so a timer that must survive that has to be an alarm. One minute is the smallest period Chrome honours for a packed extension. | `src/capture/lifecycle.ts` |
+| `alarms` | Drives the periodic queue drain. A service worker is terminated when idle, so a timer that must survive that has to be an alarm. One minute is the smallest period Chrome honours for a packed extension. | `src/capture/lifecycle.ts` |
+
+### Paste-ready justifications
+
+The dashboard gives each permission its own free-text box with a 1,000-character limit, and asks for
+the host permissions and remote code in separate boxes of the same size. One fence per box follows,
+headed by the dashboard's own label. Copy the block; the table above is the reasoning behind it, and
+these are the strings. `tests/quality/store.spec.ts` holds them to the limit and to the label, so a
+block that the form would reject fails the build instead of failing the submission.
+
+#### storage justification
+
+```
+Required rather than convenient, because a Manifest V3 service worker is stopped whenever it goes idle and has no DOM. State that must survive that has to live in the extension's own store: the capture queue, the local search index and the extension-ID remap are in chrome.storage.local, durable settings such as the runtime address are in chrome.storage.sync, and an ephemeral search handoff is in chrome.storage.session. Without it a capture would be lost when the worker stopped, which is the one thing this extension must not do. Conversation content never enters sync, so the browser never uploads a captured conversation. Used at: src/capture/queue/queue.ts, src/index/local.ts, src/migration/remap.ts, src/api/transport/acknowledge.ts.
+```
+
+#### contextMenus justification
+
+```
+Provides the three right-click entries a user captures with: Add selection to HipCortex, Add page to HipCortex, and Search HipCortex for selection. Capture is an explicit act and the context menu is its primary entry point; the toolbar popup offers the same actions for the page the user is already looking at. The entries are created once from a fixed list, never dynamically per page, and no entry is offered on a site the extension does not support. Used at: src/background.ts.
+```
+
+#### activeTab justification
+
+```
+Lets the quick-add shortcut read the text the user selected on the tab they are currently on, without the extension holding access to that site in advance. The grant covers only the active tab, is created by the user's own invocation of Ctrl+Shift+M or of the matching context-menu entry, and expires when the user navigates away. It is the reason the extension asks for no broad host access: the user decides, one invocation at a time, which page is read. Used at: src/background.ts.
+```
+
+#### sidePanel justification
+
+```
+Renders the side panel, which is where the capture queue's delivery state and the local search live, and lets the extension open it for the current window when the user presses Ctrl+Shift+H or opens it from the toolbar popup. The panel is the extension's only surface that stays open while the user works, and it is what makes a paused queue visible instead of silent. Used at: src/background.ts, src/popup.ts.
+```
+
+#### scripting justification
+
+```
+Used at exactly one call site: to read the current text selection with executeScript when the user runs the quick-add command, and to deliver that selection as a record. No code is fetched, evaluated or constructed — the function passed to executeScript is a literal inside the extension's own package, and the extension ships no remote script, no remote WebAssembly and no dynamically created script element. The permission is not used to inject the content script; that is declared in the manifest. Removing it would mean dropping the quick-add feature. Used at: src/background.ts.
+```
+
+#### nativeMessaging justification
+
+```
+The default transport. In Consumer Mode the extension talks to the HipCortex Desktop application through the native host com.hipcortex.bridge, which the desktop application installs and registers; a browser extension cannot register a native host itself, so when the host is absent the extension reports that clearly and falls back rather than failing silently. This is the transport that opens no network socket at all, which is why the install flow recommends it. Used at: src/api/transport/native.ts.
+```
+
+#### alarms justification
+
+```
+Drives the periodic drain of the capture queue. A service worker is stopped when idle, so a retry timer that has to outlive the worker must be an alarm rather than a timeout; one minute is the shortest period Chrome honours for a packed extension. Without it a queued capture would wait for the next page visit before delivery was attempted again, and a user who had closed the tab would be left with undelivered content and nothing prompting a retry. Used at: src/capture/lifecycle.ts.
+```
+
+#### Host permission justification
+
+```
+This extension has two host needs and no others.
+
+1. Content scripts on the five supported AI sites, declared as six origins because ChatGPT has two hostnames: https://chatgpt.com/*, https://chat.openai.com/*, https://claude.ai/*, https://gemini.google.com/*, https://grok.com/* and https://chat.deepseek.com/*. Reading the conversation on those pages is the extension's entire function; the content script there is the feature, not a convenience. Nothing is read on any other site.
+
+2. Loopback access, so it can deliver to a HipCortex runtime on the user's own computer: http://127.0.0.1:3030/* and http://localhost:3030/*.
+
+No remote host is pre-authorised. An address that is not loopback is refused in auto and consumer modes, and in developer mode it needs a confirmation that names the host plus a banner that stays visible while it is in effect. The same six origins also appear under optional_host_permissions, which nothing requests at runtime; they are declared for the record.
+```
+
+#### Remote code justification
+
+```
+No. All JavaScript is inside the package. tsc compiles the extension into dist/ and scripts/build-content.js bundles the single content-script entry into dist/content.js at package time; the service worker loads background.js as a module and nothing else. There is no eval, no new Function, no remote script, no remote WebAssembly, no dynamically created script element and no string-based evaluation anywhere in src/. The extension also fetches nothing at runtime that could carry code or change behaviour: the provider selector ladders are compiled in, which is deliberate, because a selector table fetched at run time would be remote code under another name. The only network requests it makes are JSON requests to the runtime address the user configured.
+```
 
 ### Host permissions
 
@@ -250,7 +356,18 @@ lists will notice.
 ### Remote code
 
 None. No `eval`, no `new Function`, no remotely hosted script and no remote WASM. The only bundled
-script is `dist/content.js`, built at package time by `scripts/build-content.js`.
+script is `dist/content.js`, built at package time by `scripts/build-content.js`. The paste-ready
+answer is the **Remote code justification** block above; this subsection is why it is true, and it is
+checkable rather than asserted —
+
+```powershell
+git grep -n -E "\beval\s*\(|new Function|WebAssembly|importScripts" -- src
+git grep -n "createElement" -- src
+```
+
+The first command returns nothing in `src/`. The second returns only `document.createElement` calls
+for `div`, `span`, `option`, `a`, `button` and `p` — DOM construction, never a `script` element and
+never an evaluated string.
 
 ## 7. Distribution and visibility
 
@@ -359,7 +476,13 @@ first thing that gets a listing rejected when they do not match the extension.
 
 ## 10. What this document does not establish
 
-- **That the item is listed.** It is not. No upload has happened.
+- **That the item is listed.** It is not. No upload has happened. A draft item exists in the
+  Developer Dashboard — *HipCortex Memory*, status **Draft**, item ID
+  `pjapbnibehgmgilenkgndfpfjkokikbl` — and the Privacy tab of that draft is what §4–§6 fill in. That
+  ID is the store's, and §11 says what to do with it: it is not `eklnpdcephecmddelagbablmeajoogkf`,
+  because the manifest currently pins a key of this repository's own making, so an unpacked build
+  reports the latter until §11's key exchange has been done. Both numbers are real and neither is
+  wrong; §11 says which one ends up where.
 - **That the artwork is a brand asset.** The mark is drawn geometry — a rounded plate and two lines —
   not a designed identity. Replace all three files together before the listing is promoted.
 - **That the screenshots show a populated product.** Three frames exist and §9 names them; each is a
@@ -368,6 +491,14 @@ first thing that gets a listing rejected when they do not match the extension.
 - **That a submission would be approved.** These are the inputs; approval is a reviewer's decision.
 - **That the declarations in §4–§6 have been made.** They are drafted to be pasted, under the
   publisher account, by the person who owns that account.
+- **That the two judgment calls in §5 are settled.** *Web history* and *Authentication information*
+  are answered `yes` for the reasons §5 gives. Both can be flipped by the account owner; neither flip
+  requires a code change, and flipping either back to `no` means disagreeing with the reasoning
+  written next to it rather than correcting a mistake in this document.
+- **That the API key's storage scope is settled.** §5 records that `apiKey` is part of
+  `DEFAULT_SETTINGS` and therefore reaches browser-synced storage. Moving it to
+  `chrome.storage.local` is the change that would let *Authentication information* be answered `no`,
+  and it is not made here.
 
 ## 11. After the first upload — make the extension ID the store's
 
@@ -380,6 +511,21 @@ to name that ID in `allowed_origins` *before* the extension has ever been loaded
 pins a `key` and `scripts/install-host.mjs` derives the ID from it. The store is the reverse: it
 refuses a package whose manifest carries a `key`, and it derives the item's ID from a public key it
 generates and holds. So the store item will **not** be `eklnpdcephecmddelagbablmeajoogkf`.
+
+**The ID it will be is already known, which removes the guesswork from step 6.** The draft item
+reports `pjapbnibehgmgilenkgndfpfjkokikbl`, and that is the value the unpacked build must report once
+step 4 has replaced the `key` — because a store item's ID is derived from the public key the store
+holds, which is the key step 3 copies. The derivation is the one `scripts/install-host.mjs` already
+performs, and it can be read off without writing anything:
+
+```powershell
+npm run install:host -- --dry-run
+```
+
+The plan that prints carries `allowed_origins`, and today it reads
+`chrome-extension://eklnpdcephecmddelagbablmeajoogkf/`. After step 4 it must read
+`chrome-extension://pjapbnibehgmgilenkgndfpfjkokikbl/`. Step 6 is then a comparison of two known
+strings rather than a hunt through the dashboard.
 
 **What to do, in order.**
 

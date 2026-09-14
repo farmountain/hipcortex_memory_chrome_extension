@@ -15,6 +15,13 @@
  * The artwork assertions read each PNG's IHDR rather than checking that the file exists, for the
  * reason `09b82fc` recorded: four icon files once existed and were 1x1, and existence assertions
  * passed the whole time.
+ *
+ * The Privacy tab checks are a second kind of assertion. Four of that form's boxes are free text
+ * with a 1,000-character limit, the host justification and the remote-code justification are two
+ * more, and the data-usage section is nine checkboxes whose answers are displayed publicly. Text
+ * kept in this document for copying is therefore held to the limit the form enforces and to the
+ * labels the form shows — a justification the form will not accept is one nobody can paste, and an
+ * answer the document contradicts is worse than no answer at all.
  */
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -37,6 +44,7 @@ interface Manifest {
   description?: string;
   permissions?: string[];
   host_permissions?: string[];
+  optional_host_permissions?: string[];
 }
 
 const manifest: Manifest = JSON.parse(
@@ -51,6 +59,30 @@ function section(heading: string): string {
   const rest = lines.slice(start + 1);
   const end = rest.findIndex((line) => line.startsWith("## "));
   return (end === -1 ? rest : rest.slice(0, end)).join("\n");
+}
+
+/**
+ * The body of the fenced block under a `#### <label>` heading.
+ *
+ * Every free-text box on the dashboard's Privacy tab gets one fence, headed by the dashboard's own
+ * label, so the box is filled by copying a block instead of retyping it. A blank line between the
+ * heading and the fence is allowed; anything else means the block cannot be found by the label the
+ * form shows, which is the same as not having it.
+ */
+function pasteBlock(label: string): string {
+  const lines = STORE_DOC.split("\n");
+  const start = lines.findIndex((line) => line.trim() === `#### ${label}`);
+  if (start === -1) throw new Error(`docs/STORE.md has no field "${label}"`);
+
+  let open = start + 1;
+  while (open < lines.length && lines[open].trim() === "") open += 1;
+  if (lines[open]?.trim() !== "```") throw new Error(`field "${label}" has no fenced block`);
+
+  let close = open + 1;
+  while (close < lines.length && lines[close].trim() !== "```") close += 1;
+  if (close === lines.length) throw new Error(`field "${label}" has an unterminated fenced block`);
+
+  return lines.slice(open + 1, close).join("\n");
 }
 
 /** Dimensions declared in a PNG's IHDR chunk. */
@@ -203,5 +235,131 @@ describe("store listing screenshots", () => {
     for (const name of shipped) {
       expect(STORE_DOC, `${name} is not named in docs/STORE.md`).toContain(name);
     }
+  });
+});
+
+describe("store privacy tab copy", () => {
+  /** Every category the data-usage section lists, in the order the form lists them. */
+  const DATA_CATEGORIES = [
+    "Personally identifiable information",
+    "Health information",
+    "Financial and payment information",
+    "Authentication information",
+    "Personal communications",
+    "Location",
+    "Web history",
+    "User activity",
+    "Website content",
+  ];
+
+  /** Category to the `yes`/`no` answer the §5 table gives it. */
+  function dataAnswers(): Map<string, string> {
+    const table = section("## 5. Privacy — data disclosure");
+    const rows = table.matchAll(/^\|\s*([^|]+?)\s*\|\s*\*{0,2}(yes|no)\*{0,2}\s*\|/gim);
+    return new Map([...rows].map((row) => [row[1], row[2].toLowerCase()]));
+  }
+
+  it("keeps every paste-ready block inside the form's 1,000-character limit", () => {
+    // The limit is the whole reason these live in fences. Prose in a paragraph can be any length;
+    // a block labelled as the box's contents cannot, so the length is asserted rather than noticed
+    // when the form refuses the paste.
+    const labels = [...STORE_DOC.matchAll(/^####\s+(.+?)\s*$/gm)].map((match) => match[1]);
+    expect(labels.length).toBeGreaterThanOrEqual(10);
+    for (const label of labels) {
+      expect(pasteBlock(label).length, label).toBeLessThanOrEqual(1000);
+    }
+  });
+
+  it("answers the single-purpose box with a statement that names the destination", () => {
+    const text = pasteBlock("Single purpose description");
+    expect(text.length).toBeGreaterThan(300);
+    // The box is reviewed against the permission list, and the permissions exist to reach a runtime
+    // on the user's own machine. A statement that omits where a capture goes reviews badly.
+    expect(text).toMatch(/native messaging|loopback/i);
+    expect(text).toMatch(/the user's own/i);
+  });
+
+  it("gives every declared permission its own justification block", () => {
+    // Paired with the set-equality test above: that one proves every permission has a row, this one
+    // proves the row has something the form will accept in the box next to it.
+    for (const permission of manifest.permissions ?? []) {
+      const text = pasteBlock(`${permission} justification`);
+      expect(text.length, `${permission} justification is too short to justify anything`).toBeGreaterThan(
+        150
+      );
+    }
+  });
+
+  it("accounts for every host the manifest declares", () => {
+    // A reviewer compares this box against the package. A pattern the manifest declares and the box
+    // does not mention is the one they will ask about, so the box has to cover all of them — the
+    // loopback pair and the provider origins both.
+    const text = pasteBlock("Host permission justification");
+    const declared = [
+      ...(manifest.host_permissions ?? []),
+      ...(manifest.optional_host_permissions ?? []),
+    ];
+    expect(declared.length).toBeGreaterThanOrEqual(2);
+    for (const pattern of declared) {
+      expect(text, `${pattern} is declared but not explained`).toContain(pattern);
+    }
+    expect(text).toMatch(/No remote host is pre-authorised/);
+  });
+
+  it("answers the remote-code box with an unqualified negative", () => {
+    const text = pasteBlock("Remote code justification");
+    expect(text).toMatch(/^No\b/);
+    expect(text).toContain("eval");
+    // The one bundled script is the claim that makes "no" true, so the box has to name it.
+    expect(text).toContain("dist/content.js");
+  });
+
+  it("answers all nine data-usage categories and answers none of them twice", () => {
+    const answers = dataAnswers();
+    expect(answers.size).toBe(DATA_CATEGORIES.length);
+    for (const category of DATA_CATEGORIES) {
+      expect(answers.get(category), `${category} is not answered in §5`).toMatch(/^(yes|no)$/);
+    }
+  });
+
+  it("declares the categories the capture contract demonstrably reaches", () => {
+    // These three are not judgment calls. `Provenance.conversationUrl` is a required field of every
+    // capture, the provider adapters read conversation text out of the page, and a page's title and
+    // URL are read when the user captures one. Answering "no" while the schema requires that data
+    // is the under-declaration the store rejects for, so it is pinned here.
+    const answers = dataAnswers();
+    for (const category of ["Personal communications", "Website content", "Web history"]) {
+      expect(answers.get(category), `${category} must be declared`).toBe("yes");
+    }
+  });
+
+  it("declares authentication information while the settings hold a credential", () => {
+    // The mechanism matters more than the answer. `apiKey` is a field of `DEFAULT_SETTINGS`, is
+    // sent to the runtime as a bearer token, and rides in `chrome.storage.sync`; while that is
+    // true, "no" would be a declaration the code contradicts. If the field is ever removed, this
+    // test stops asserting rather than asserting a stale answer.
+    const settings = readFileSync(path.join(REPO_ROOT, "src", "types", "index.ts"), "utf8");
+    if (!/^\s*apiKey\s*:/m.test(settings)) return;
+    expect(dataAnswers().get("Authentication information")).toBe("yes");
+  });
+
+  it("states all three certifications the form requires", () => {
+    const table = section("## 5. Privacy — data disclosure");
+    expect(table).toMatch(/Not sold to third parties/i);
+    expect(table).toMatch(/purposes unrelated to the single purpose/i);
+    expect(table).toMatch(/creditworthiness/i);
+  });
+
+  it("publishes a privacy policy URL that names the policy in this repository", () => {
+    // The field is required and takes one URL. It has to be the rendered policy, in the default
+    // branch, in the repository this package is developed in — a link to a branch that may not
+    // exist, or to a raw API endpoint, is not a policy a reviewer can read.
+    const url = pasteBlock("Privacy policy URL").trim();
+    expect(url.length).toBeGreaterThan(0);
+    expect(url.length).toBeLessThanOrEqual(2048);
+    expect(url).toMatch(
+      /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/blob\/main\/docs\/PRIVACY\.md$/
+    );
+    expect(existsSync(PRIVACY_DOC)).toBe(true);
   });
 });
