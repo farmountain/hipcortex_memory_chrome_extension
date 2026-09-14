@@ -1,59 +1,49 @@
-# Layer 1 — Requirement Intelligence
+# Requirements — where the specification actually lives
 
-## Product Vision
-Give every browser user and every AI agent that lives in the browser a persistent, causal, local-first memory substrate (HipCortex) without leaving the tab.
+This file is an **index, not a specification**. The requirements work that used to live here had
+drifted: it required the client to "tolerate multiple historical endpoint paths" (old R1.3), which
+the verified contract later proved to be a defect, and it restated acceptance criteria that now
+exist in exactly one place with verification commands attached.
 
-## Inputs Consumed
-- HipCortex product vision & existing REST surface
-- Chrome Extension Manifest V3 constraints
-- Existing VS Code extension patterns (chat participant, LM tools)
-- Security policies (no remote code, least privilege, dual health)
-- Coding standards (TypeScript strict, modular)
+Two documents own the specification:
 
-## Requirement Graph (high level)
+| Document | Owns |
+|----------|------|
+| [`docs/END-STATE.md`](./END-STATE.md) | The end-state goals `G1`–`G8`, each with measurable acceptance criteria (`G#.#`), the command that verifies each one, locked interpretations, non-goals with reasons, and risks |
+| [`docs/PROTOCOL.md`](./PROTOCOL.md) | The verified network contract — every endpoint that may be called, every one that must never be, and the acknowledgement rule |
 
-### R1 — Connectivity
-- R1.1 Must detect local server at configurable URL (default 127.0.0.1:3030)
-- R1.2 Must support dual /health response formats (plain “ok” + JSON)
-- R1.3 Must tolerate multiple historical endpoint paths for add/search
+The plan that discharges them is the OpenSpec change set under
+[`openspec/changes/`](../openspec/changes/): `cortexbridge-perception-layer` is the base, and
+`cortexbridge-retention-boundary`, `cross-provider-search-index`, `clarity-protocol`,
+`substrate-migration`, `capture-context-injection` and `installable-product` discharge the goals that
+change left open. Every task in a `tasks.md` names the `G#.#` criterion it discharges and the spec
+that proves it. A task that cites a criterion which does not exist, or a test path that is not on
+disk, fails `npm run test:traceability` (`G6.8`).
 
-### R2 — Capture
-- R2.1 User can add free-text memory from popup / side panel
-- R2.2 Context menu on selection → add as memory with page URL/title metadata
-- R2.3 Keyboard shortcut for selected text
-- R2.4 Default actor is configurable
+## Requirement areas
 
-### R3 — Retrieval
-- R3.1 Search from popup and side panel
-- R3.2 Context menu “search selection” opens side panel with query pre-filled
+| Area | Criteria | Primary proving specs |
+|------|----------|-----------------------|
+| Capture fidelity — analyze before extracting, provenance on every capture, fail closed | `G1.1`–`G1.9` | `tests/capture/providers/*.spec.ts`, `tests/schema/*.spec.ts` |
+| Durability — acknowledged delivery, no loss counter, bounded backlog reported as paused | `G2.1`–`G2.10` | `tests/capture/queue.spec.ts`, `tests/capture/failures.spec.ts` |
+| Cross-provider retrieval — discrete provider identity, filterable, semantic path unwrapped, searchable with the runtime stopped | `G3.1`–`G3.9` | `tests/schema/egress.spec.ts`, `tests/api/transport.spec.ts`, `tests/index/offline-search.spec.ts`, `tests/index/empty-results.spec.ts` |
+| Migration across boundaries — export, field-equivalent import through `POST /memory/add` with a recorded `id` remap, and a version refusal that writes nothing | `G4.1`–`G4.5` | `tests/migration/*.spec.ts`, `tests/router/import.spec.ts`, `tests/surfaces/import.spec.ts`, `tests/capture/queue-export.spec.ts` |
+| Cognitive distillation — the extension stays out of it, and says so | `G5.1`–`G5.6` | `tests/quality/source-scans.spec.ts`, `tests/schema/validate.spec.ts` |
+| Provable claims — typecheck, lint, tests, build, clean, package, not committing `dist/` | `G6.1`–`G6.8` | `tests/quality/*.spec.ts` |
+| Anti-exfiltration — loopback by default, confirmation before remote egress | `G7.1`–`G7.6` | `tests/options/remote-egress.spec.ts`, `tests/surfaces/egress-banner.spec.ts`, `tests/quality/manifest.spec.ts` |
+| Provider drift resilience — ladder, landmark pre-check, cardinality check, drift reporting | `G8.1`–`G8.9` | `tests/capture/providers/*.spec.ts`, `tests/capture/drift.spec.ts` |
 
-### R4 — UX Surfaces
-- R4.1 Action popup
-- R4.2 Side panel
-- R4.3 Options page
-- R4.4 Context menus
-- R4.5 Commands
+## Requirements that were withdrawn, and why
 
-### R5 — Security & Privacy
-- R5.1 Manifest V3 only
-- R5.2 Host permissions limited to HipCortex origins by default
-- R5.3 Optional host permissions for AI chat sites (future injection)
-- R5.4 No remote code execution
-- R5.5 Settings in chrome.storage.sync
+| Withdrawn | Reason |
+|-----------|--------|
+| "Must tolerate multiple historical endpoint paths for add/search" (old R1.3) | Replaced by a single verified egress, `POST /memory/add`. A ladder of 404s reads as a transient failure and hides a misconfiguration — and one rung, `POST /memory/ingest`, returns HTTP 200 while destroying the provenance metadata and imposing a 24-hour TTL. Evidence in [`docs/PROTOCOL.md`](./PROTOCOL.md) §3.1. |
+| "Add memory from the popup → appears in subsequent search" as an MVP acceptance criterion | Too weak to be worth verifying: it is satisfied by a device-local store. Retention is the core's job; this repository's obligation is *acknowledged delivery*, which is both stronger and testable (`G2.1`, `G2.9`). |
+| "Tolerate multiple historical endpoint paths" as a resilience feature | Same entry as above: resilience in this codebase means the queue retains until acknowledged, not that the client guesses at endpoints. |
 
-### R6 — Quality Gates
-- R6.1 TypeScript strict
-- R6.2 Build produces loadable unpacked extension
-- R6.3 Predictive failure handling for network / 404 / timeout
+## Still open
 
-## Acceptance Criteria (MVP)
-1. Load unpacked → popup shows “online” when hipcortex start is healthy
-2. Add memory from popup → appears in subsequent search (or at least returns success)
-3. Select text on any page → context menu → memory stored with URL metadata
-4. Options page can change API URL and test connection
-5. Side panel opens via keyboard shortcut and can search
+Nothing here. Runtime questions that remain unprobed are listed in
+[`docs/PROTOCOL.md`](./PROTOCOL.md) §8; scope questions and risks are in
+[`docs/END-STATE.md`](./END-STATE.md).
 
-## Unknown Assumptions (flagged for future Reality Model)
-- Exact current REST paths may still evolve (client already multi-endpoint)
-- Whether /memory/add vs /memory/ingest is canonical
-- Future need for auth beyond optional API key

@@ -1,0 +1,28 @@
+<!doctype html>
+<!--
+  Degraded: the turns are present and the text is readable, but nothing in the document carries a
+  role signal. The adapter must refuse with `NO_ROLE_SIGNAL` rather than assume roles alternate — an
+  assumed role is a wrong capture that no later layer can detect.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redacted conversation</title>
+  </head>
+  <body>
+    <main>
+      <div data-testid="conversation">
+        <div data-testid="conversation-turn">
+          <div class="fbb737a4">REDACTED-USER-1</div>
+        </div>
+        <div data-testid="conversation-turn">
+          <div class="ds-markdown"><p>REDACTED-ASSISTANT-1</p></div>
+        </div>
+        <div data-testid="conversation-turn">
+          <div class="fbb737a4">REDACTED-USER-2</div>
+        </div>
+      </div>
+    </main>
+    <div class="composer"><textarea></textarea></div>
+  </body>
+</html>

@@ -1,22 +1,31 @@
 {
   "name": "hipcortex-chrome-extension",
   "version": "0.1.0",
-  "description": "HipCortex Chrome Extension — persistent causal memory for the browser. Part of the AI Software Factory.",
+  "description": "HipCortex Memory — browser perception layer. Captures ChatGPT, Claude, Grok, Gemini and DeepSeek conversations into a local-first HipCortex memory over native messaging or loopback HTTP.",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc && node scripts/copy-assets.js",
+    "build": "tsc && node scripts/build-content.js && node scripts/copy-assets.js",
     "watch": "tsc --watch",
-    "clean": "rm -rf dist",
-    "lint": "eslint src --ext .ts",
+    "clean": "node scripts/clean.js",
+    "lint": "eslint src tests",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
     "test": "vitest run",
-    "package": "npm run build && cd dist && zip -r ../hipcortex-chrome-extension-v0.1.0.zip ."
+    "test:clarity": "node scripts/clarity.js",
+    "test:traceability": "node scripts/traceability.js",
+    "verify": "npm run typecheck && npm run lint && npm test && npm run build",
+    "package": "npm run build && node scripts/package.js",
+    "install:host": "node scripts/install-host.mjs",
+    "uninstall:host": "node scripts/install-host.mjs --uninstall"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.268",
+    "@types/node": "^26.5.1",
+    "esbuild": "^0.28.2",
+    "eslint": "^9.9.0",
+    "jsdom": "^29.1.1",
     "typescript": "^5.5.4",
-    "vitest": "^2.0.5",
-    "eslint": "^9.9.0"
-  },
-  "dependencies": {}
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^2.0.5"
+  }
 }

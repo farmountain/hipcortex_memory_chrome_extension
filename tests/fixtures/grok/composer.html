@@ -1,0 +1,23 @@
+<!doctype html>
+<!--
+  The Grok composer fixture (`capture-context-injection` task 1.2).
+
+  A textarea inside the composer form. This is the `value` write kind as opposed to the `text` kind
+  the three editable-based providers use, and both kinds are covered on purpose: a write path that
+  only ever handled one of them would look correct on every fixture that happened to match it.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Grok</title>
+  </head>
+  <body>
+    <main>
+      <div class="conversation">REDACTED-EMPTY-CONVERSATION</div>
+      <form>
+        <textarea aria-label="Ask Grok anything" rows="1"></textarea>
+        <button type="submit">Submit</button>
+      </form>
+    </main>
+  </body>
+</html>

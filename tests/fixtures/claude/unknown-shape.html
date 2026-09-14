@@ -1,0 +1,23 @@
+<!doctype html>
+<!--
+  Degraded: no `<main>` landmark, but a perfectly readable conversation sits behind it. A capture that
+  skipped the landmark gate would succeed here and silently record a page it does not recognise, so
+  the fixture is the positive control for "no message text is read before the shape is decided".
+  The marker must never appear in a failure `detail`.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redacted conversation</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <div data-testid="conversation">
+        <div data-testid="conversation-turn" data-message-author-role="user">
+          <div data-testid="user-message">MARKER-MUST-NOT-BE-READ</div>
+        </div>
+      </div>
+    </div>
+    <div class="composer"><div contenteditable="true"></div></div>
+  </body>
+</html>

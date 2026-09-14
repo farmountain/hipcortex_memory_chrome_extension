@@ -1,0 +1,21 @@
+<!doctype html>
+<!--
+  The DeepSeek composer fixture (`capture-context-injection` task 1.2).
+
+  DeepSeek's field is a `<textarea id="chat-input">` under the app shell, so this fixture resolves
+  `composerRoot` at rung 0 (`main`) and `composerInput` at rung 0 (`#chat-input`) — the shallowest
+  walk of any of the five, which is worth having as a control: a spec that only ever observed deep
+  rungs could pass with a ladder whose first entry never matched anything.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>DeepSeek</title>
+  </head>
+  <body>
+    <main>
+      <div class="chat-container">REDACTED-EMPTY-CONVERSATION</div>
+      <textarea id="chat-input" placeholder="Message DeepSeek"></textarea>
+    </main>
+  </body>
+</html>

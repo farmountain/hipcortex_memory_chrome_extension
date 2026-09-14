@@ -34,3 +34,23 @@ button.primary { background: var(--accent); color: #fff; border: none; }
 .add-section { border-top: 1px solid var(--border); padding-top: 12px; }
 .add-section textarea { width: 100%; margin-bottom: 8px; resize: vertical; }
 .add-section button { width: 100%; }
+
+.hidden { display: none; }
+
+/* ---------- Egress notice (G7.4) ---------- */
+.egress-banner {
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid var(--error);
+  border-radius: var(--radius);
+  color: var(--error);
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+/* ---------- Persistent failure line ---------- */
+.capture-note { color: var(--error); font-size: 12px; margin-top: 8px; }
+
+/* ---------- Placement action (G4.5) ---------- */
+.result-actions { margin-top: 8px; }
+.result-place { font-size: 12px; padding: 3px 10px; }
+.result-note { color: var(--muted); font-size: 11px; margin: 6px 0 0 0; }

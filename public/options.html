@@ -10,19 +10,29 @@
   <div class="page">
     <header>
       <h1>🧠 HipCortex Settings</h1>
-      <p class="subtitle">Configure connection to your local or managed memory engine</p>
+      <p class="subtitle">Configure connection to your local memory engine</p>
     </header>
 
     <form id="settings-form">
       <div class="field">
         <label for="apiUrl">API URL</label>
         <input id="apiUrl" type="url" placeholder="http://127.0.0.1:3030" required />
-        <p class="hint">Local default: http://127.0.0.1:3030 · Managed: https://hipcortex.fly.dev</p>
+        <p class="hint">Local default: http://127.0.0.1:3030 · Saving a base URL that is not on this machine asks you to confirm the host by name first, and declining changes nothing</p>
       </div>
 
       <div class="field">
         <label for="apiKey">API Key (optional)</label>
         <input id="apiKey" type="password" placeholder="sk-… or leave empty for local" />
+      </div>
+
+      <div class="field">
+        <label for="transportMode">Transport mode</label>
+        <select id="transportMode">
+          <option value="auto">auto — prefer the desktop app, fall back to local HTTP</option>
+          <option value="consumer">consumer — desktop app only, never falls back</option>
+          <option value="developer">developer — local HTTP only</option>
+        </select>
+        <p class="hint">consumer never silently falls back to HTTP, and auto/consumer refuse a base URL that is not on this machine</p>
       </div>
 
       <div class="field">
@@ -53,6 +63,43 @@
     </form>
 
     <div id="status" class="status"></div>
+
+    <section id="migration">
+      <h2>Move records between cores</h2>
+      <p class="subtitle">
+        Import a memory export from another HipCortex core into this one. Every record is written the
+        way a capture is, so the destination decides what it keeps — a field this build does not
+        define refuses the whole file rather than half importing it.
+      </p>
+
+      <div class="field">
+        <label for="import-file">Export file</label>
+        <input id="import-file" type="file" accept="application/json,.json" />
+        <p class="hint">
+          The core regenerates each record's id, so an import breaks any reference that named the old
+          one. Old-to-new is recorded as the import runs, which is what the lookup below reads.
+        </p>
+      </div>
+
+      <div class="actions">
+        <button type="button" id="btn-import" class="primary">Import records</button>
+      </div>
+      <div id="import-report" class="report hidden" role="status" aria-live="polite"></div>
+
+      <div class="field">
+        <label for="remap-id">Resolve an id from before an import</label>
+        <input id="remap-id" type="text" placeholder="an id from a core export, or a capture's event id" />
+        <p class="hint">
+          Answers with the id the destination issued for it, or that it is not in the remap — which is
+          a different answer from an empty remap, and both are shown.
+        </p>
+      </div>
+
+      <div class="actions">
+        <button type="button" id="btn-remap" class="secondary">Resolve id</button>
+      </div>
+      <div id="remap-result" class="report hidden" role="status" aria-live="polite"></div>
+    </section>
   </div>
   <script type="module" src="options.js"></script>
 </body>

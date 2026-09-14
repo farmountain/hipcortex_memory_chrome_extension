@@ -1,0 +1,25 @@
+<!doctype html>
+<!--
+  Degraded: the turn containers carry a role value the alias table does not know. The shape is right
+  and the content is not, which is what a layout change inside the same container looks like — so the
+  failure is `UNSUPPORTED_LAYOUT` (attributed to `roleSignal`) and not a guessed role.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redacted conversation</title>
+  </head>
+  <body>
+    <main>
+      <div data-testid="conversation">
+        <div data-testid="conversation-turn" data-message-author-role="wizard">
+          <div class="fbb737a4">REDACTED-USER-1</div>
+        </div>
+        <div data-testid="conversation-turn" data-message-author-role="assistant">
+          <div class="ds-markdown"><p>REDACTED-ASSISTANT-1</p></div>
+        </div>
+      </div>
+    </main>
+    <div class="composer"><textarea></textarea></div>
+  </body>
+</html>

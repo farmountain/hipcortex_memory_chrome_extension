@@ -1,0 +1,23 @@
+<!doctype html>
+<!--
+  Unknown shape: the composer landmark is missing, so the page is not the conversation view this
+  adapter was verified against. The turns and their text are present and readable on purpose — if
+  the landmark gate were removed or reordered, extraction would happily produce a capture here, and
+  the "no message text is read" spec would fail instead of passing vacuously.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redacted conversation</title>
+  </head>
+  <body>
+    <main id="conversation-root">
+      <div data-testid="conversation-turn-0" data-message-author-role="user">
+        <div class="whitespace-pre-wrap">MARKER-MUST-NOT-BE-READ</div>
+      </div>
+      <div data-testid="conversation-turn-1" data-message-author-role="assistant">
+        <div class="markdown"><p>MARKER-MUST-NOT-BE-READ</p></div>
+      </div>
+    </main>
+  </body>
+</html>

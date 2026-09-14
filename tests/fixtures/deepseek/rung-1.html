@@ -1,0 +1,29 @@
+<!doctype html>
+<!--
+  Every slot at rung 1: the wrapper test id is gone, the turns are `[data-turn]`, the role attribute
+  is the second rung's, and no markdown container exists — so all four slots fall one rung deeper and
+  `rungs` must report `{1, 1, 1, 1}`. This is the shape a rename of the hashed classes produces.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redacted conversation</title>
+  </head>
+  <body>
+    <main>
+      <div data-turn="1" data-author-role="user">
+        <div class="fbb737a4">REDACTED-USER-1</div>
+      </div>
+      <div data-turn="2" data-author-role="assistant">
+        <div class="fbb737a4"><p>REDACTED-ASSISTANT-1</p></div>
+      </div>
+      <div data-turn="3" data-author-role="user">
+        <div class="fbb737a4">REDACTED-USER-2</div>
+      </div>
+      <div data-turn="4" data-author-role="assistant">
+        <div class="fbb737a4"><p>REDACTED-ASSISTANT-2</p></div>
+      </div>
+    </main>
+    <div class="composer"><textarea></textarea></div>
+  </body>
+</html>

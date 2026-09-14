@@ -1,0 +1,26 @@
+<!doctype html>
+<!--
+  Degraded: the turn containers are present and the text is readable, but nothing in the document
+  carries a role signal. The adapter must refuse with `NO_ROLE_SIGNAL` rather than assume roles
+  alternate — an assumed role is a wrong capture that no later layer can detect.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redacted conversation</title>
+  </head>
+  <body>
+    <main id="conversation-root">
+      <div data-testid="conversation-turn-0">
+        <div class="whitespace-pre-wrap">REDACTED-USER-1</div>
+      </div>
+      <div data-testid="conversation-turn-1">
+        <div class="markdown"><p>REDACTED-ASSISTANT-1</p></div>
+      </div>
+      <div data-testid="conversation-turn-2">
+        <div class="whitespace-pre-wrap">REDACTED-USER-2</div>
+      </div>
+    </main>
+    <form class="composer"><textarea placeholder="Message ChatGPT"></textarea></form>
+  </body>
+</html>

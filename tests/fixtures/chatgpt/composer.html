@@ -1,0 +1,28 @@
+<!doctype html>
+<!--
+  The ChatGPT composer fixture (`capture-context-injection` task 1.2).
+
+  Redacted and synthetic, like every fixture here. Its job is to exercise the *composer* ladder, which
+  is a different ladder from the capture one: this page is a fresh chat with no conversation on it,
+  and it is the page a placement is most likely to target.
+
+  It deliberately reproduces the shape the composer ladder walks rung by rung rather than the shape
+  that would be most convenient: the form is `main form` (rung 0 of `composerRoot`), the field is a
+  ProseMirror editable under `#prompt-textarea` (rung 0 of `composerInput`). A fixture that resolved
+  only at the last rung would make the ladder look unused.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>New chat</title>
+  </head>
+  <body>
+    <main>
+      <div id="thread">REDACTED-EMPTY-THREAD</div>
+      <form class="composer">
+        <div id="prompt-textarea" class="ProseMirror" contenteditable="true" role="textbox"></div>
+        <button type="submit" data-testid="send-button">Send</button>
+      </form>
+    </main>
+  </body>
+</html>

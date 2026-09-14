@@ -1,0 +1,31 @@
+<!doctype html>
+<!--
+  Every message text reaches through the first rung of the `messageText` ladder. The reported rung is
+  the deepest one used by any message, so a fixture is the only way to observe rung 0 at all: in the
+  canonical conversation the user turns already fall through to rung 1.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redacted conversation</title>
+  </head>
+  <body>
+    <main>
+      <div data-testid="conversation">
+        <div data-testid="conversation-turn" data-message-author-role="user">
+          <div class="font-claude-message">REDACTED-USER-1</div>
+        </div>
+        <div data-testid="conversation-turn" data-message-author-role="assistant">
+          <div class="font-claude-message"><p>REDACTED-ASSISTANT-1</p></div>
+        </div>
+        <div data-testid="conversation-turn" data-message-author-role="user">
+          <div class="font-claude-message">REDACTED-USER-2</div>
+        </div>
+        <div data-testid="conversation-turn" data-message-author-role="assistant">
+          <div class="font-claude-message"><p>REDACTED-ASSISTANT-2</p></div>
+        </div>
+      </div>
+    </main>
+    <div class="composer"><div contenteditable="true"></div></div>
+  </body>
+</html>

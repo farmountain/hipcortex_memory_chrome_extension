@@ -142,6 +142,40 @@ footer {
   z-index: 100;
   transition: opacity 0.2s;
 }
-.toast.hidden { opacity: 0; pointer-events: none; }
+.toast.hidden { display: block; opacity: 0; pointer-events: none; }
 .toast.success { border-color: var(--success); color: var(--success); }
 .toast.error { border-color: var(--error); color: var(--error); }
+
+.hidden { display: none; }
+
+/* ---------- Egress notice (G7.4) ---------- */
+.egress-banner {
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid var(--error);
+  border-radius: var(--radius);
+  color: var(--error);
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+/* ---------- Capture status (G2.3) ---------- */
+.capture-status {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+.capture-status.attention { border-color: var(--error); }
+.capture-row { display: flex; gap: 8px; justify-content: space-between; font-size: 12px; }
+.capture-label { color: var(--muted); }
+.capture-value { font-variant-numeric: tabular-nums; }
+.capture-value.attention { color: var(--error); font-weight: 600; }
+.capture-paused { color: var(--error); font-size: 12px; margin-top: 8px; }
+/* The runtime's own reason for a refusal, one line per refused capture (G2.2). */
+.capture-refusal { display: block; color: var(--muted); margin-top: 4px; }
+/* The user's exit from a backlog that cannot be delivered (G4.1). */
+.capture-export { width: 100%; margin-top: 8px; }
+.capture-export-note { color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+/* ---------- Persistent failure line ---------- */
+.error-line { color: var(--error); font-size: 12px; margin-top: 6px; }

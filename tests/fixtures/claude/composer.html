@@ -1,0 +1,25 @@
+<!doctype html>
+<!--
+  The Claude composer fixture (`capture-context-injection` task 1.2).
+
+  The composer sits in a `<fieldset>` holding a ProseMirror editable, which is what the composer
+  ladder's structural rung and field rung target. Synthetic and redacted, as with every fixture: it
+  proves the ladder resolves and the write lands in the field, not that the live page still looks
+  like this — `verifiedAt` on the adapter is the only claim of freshness, and the manual gate is what
+  refreshes it.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Claude</title>
+  </head>
+  <body>
+    <main>
+      <div data-testid="conversation">REDACTED-EMPTY-CONVERSATION</div>
+      <fieldset>
+        <div class="ProseMirror" contenteditable="true" aria-label="Write your prompt to Claude"></div>
+        <button aria-label="Send message">Send</button>
+      </fieldset>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,423 @@
+{
+  "version": 1,
+  "note": "The clarity ledger. Rules, states and exit conditions are defined in docs/CLARITY.md; this file is validated by scripts/clarity.js and gated by npm run test:clarity. Evidence items are commands, files or probes, never recollections.",
+  "policy": {
+    "maxSelfPromptAttempts": 5,
+    "maxEscalationsPerQuestion": 1,
+    "reopenRequiresNewEvidence": true
+  },
+  "stages": [
+    { "stage": "goals", "entries": ["Q1", "Q14"] },
+    { "stage": "acceptance-criteria", "entries": ["Q2", "Q15", "Q19"] },
+    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13"] },
+    { "stage": "unknowns", "entries": ["Q4", "Q5", "Q11", "Q20"] },
+    { "stage": "planning", "entries": ["Q6", "Q9", "Q18"] },
+    { "stage": "react-iterations", "entries": ["Q7", "Q8", "Q10", "Q16", "Q17"] }
+  ],
+  "questions": [
+    {
+      "id": "Q1",
+      "stage": "goals",
+      "critical": true,
+      "question": "Does the clarification mechanism belong in the extension, in the plan documents, or in both?",
+      "state": "self-resolved",
+      "attempts": 2,
+      "artifactsTried": [
+        "AGENTS.md - states the extension perceives and does not reason, and lists reasoning as a non-goal",
+        "src/** - read the module table; the only places that could host a question loop are the service worker and the pipeline, both transport"
+      ],
+      "evidence": [
+        "$ npm test -> Test Files 36 passed (36) / Tests 543 passed (543), including tests/quality/source-scans.spec.ts",
+        "AGENTS.md - no memory, goals, beliefs, world model, or consolidation logic belongs here"
+      ],
+      "resolution": "Process and documentation only. The mechanism lives in docs/CLARITY.md, docs/clarity-ledger.json, scripts/clarity.js and an instruction file. Nothing is added to src/, so no shipped behaviour changes.",
+      "doesNotEstablish": "That the gate prevents a future author from adding cognition to src/ - it only detects the ledger and CLARITY references this protocol introduces."
+    },
+    {
+      "id": "Q2",
+      "stage": "acceptance-criteria",
+      "critical": true,
+      "question": "Does the mechanism require a new G-criterion in docs/END-STATE.md, or its own criteria elsewhere?",
+      "state": "self-resolved",
+      "attempts": 2,
+      "artifactsTried": [
+        "docs/END-STATE.md - the criteria tables describe product behaviour of the perception layer, and the file states the core retains while the extension guarantees acknowledged delivery",
+        "scripts/traceability.js - criteria are parsed only from table rows whose first cell matches an id, so an added criterion would need a requirement heading or the gate would fail"
+      ],
+      "evidence": [
+        "$ npm run test:traceability -> criteria declared : 62 (docs/END-STATE.md) / criteria cited : 62/62 by 51 requirement headings / test paths cited : 149 in tasks.md / OK"
+      ],
+      "resolution": "Product scope unchanged: 62 criteria stay 62. The mechanism carries its own criteria, CP1 to CP9, in openspec/changes/clarity-protocol/specs/clarity-protocol/spec.md, which the traceability parser does not read as G-ids.",
+      "doesNotEstablish": "That a reviewer will treat CP1 to CP9 as binding; only the clarity gate reads them."
+    },
+    {
+      "id": "Q3",
+      "stage": "validation-planning",
+      "critical": true,
+      "question": "Is the ledger gate added to npm run verify, or exposed as its own command?",
+      "state": "self-resolved",
+      "attempts": 1,
+      "artifactsTried": [
+        "tests/quality/gates.spec.ts - asserts the verify chain equals exactly typecheck, lint, test and build in that order, and that the chain contains no semicolon separator",
+        "package.json scripts - test:traceability already exists as a standalone gate, which is the precedent"
+      ],
+      "evidence": [
+        "tests/quality/gates.spec.ts - runs the four gates in order, as a single command; adding a fifth step fails a currently passing test",
+        "$ npm run test:clarity -> exit 0"
+      ],
+      "resolution": "Expose npm run test:clarity as its own command, mirroring test:traceability, and record the consequence in docs/CLARITY.md section 6: verify alone does not check the ledger.",
+      "doesNotEstablish": "That the ledger is checked on every run; it is checked when it is named, which is a deliberate acceptance of a smaller gate."
+    },
+    {
+      "id": "Q4",
+      "stage": "unknowns",
+      "critical": true,
+      "question": "Is the native messaging host name correct, so Consumer Mode is verified rather than assumed?",
+      "state": "self-resolved",
+      "attempts": 3,
+      "artifactsTried": [
+        "src/api/transport/native.ts - the host constant carries a comment saying the envelope is assumed, not verified",
+        "tests/api/native.spec.ts - asserts the outbound envelope byte for byte against a mock, so the spec cannot confirm the host name",
+        "HipCortex Desktop installer - not present on the machine, so the assumption cannot be tested at all"
+      ],
+      "evidence": [
+        "Registry, HKCU and HKLM Google Chrome NativeMessagingHosts -> 6 hosts registered, none of them HipCortex",
+        "LOCALAPPDATA Programs, names matching hip -> none",
+        "$ git ls-files dist -> empty"
+      ],
+      "resolution": "Apply the task's own escape hatch: Consumer Mode is recorded as mock-verified only, in openspec tasks 10.8 and in docs/END-STATE.md open risk 2. The correction point is one constant and one protocol section. Re-opened by Q14: the host turned out to be this repository's own to ship, so the name is now a constant this repo chooses and registers rather than an assumption about someone else's installer.",
+      "doesNotEstablish": "That the host name is wrong. At the time it was unverified and there was no host on this machine to disagree with it; after Q14 there is one, and it is the one this repository installs.",
+      "reopens": ["Q14"],
+      "newEvidence": [
+        "host/bridge-host.mjs -> the host this repository itself ships and registers as com.hipcortex.bridge, so the name is this repo's own choice rather than an assumption about a third-party installer",
+        "$ npm test -- tests/host/end-to-end.spec.ts -> 5 tests passed, so the envelope is executed against a real HTTP core rather than mock-verified only"
+      ]
+    },
+    {
+      "id": "Q5",
+      "stage": "unknowns",
+      "critical": false,
+      "question": "Is the PII precondition refusal deterministic across runtime versions, or could a retry eventually succeed?",
+      "state": "open-with-exit",
+      "attempts": 3,
+      "artifactsTried": [
+        "Live probe against runtime 3.11.0 - averaged phone number, bare ten-digit run and email each refused, a clean transcript accepted",
+        "docs/PROTOCOL.md 3.2 - records the refusal and that no row changed"
+      ],
+      "evidence": [
+        "Live probe -> status 403 precondition blocked, risk 0.90, patterns listed",
+        "$ node .scratch/live-e2e.mjs -> G2.9 memory_add status=200 success=true record_id_present=true"
+      ],
+      "resolution": "Not resolved here. Recorded as open because the answer changes nothing about what this repository must do: the queue retains the capture either way.",
+      "exitCondition": "Closed by cortexbridge-retention-boundary section 5 when a refusal is reported as a per-entry outcome distinct from a transient failure, or by a probe against a runtime later than 3.11.0 that answers differently."
+    },
+    {
+      "id": "Q6",
+      "stage": "planning",
+      "critical": false,
+      "question": "May the live end-to-end probe write into the runtime, and under what containment?",
+      "state": "self-resolved",
+      "attempts": 2,
+      "artifactsTried": [
+        "docs/PROTOCOL.md - the capture write path is POST /memory/add, and DELETE /memory/forget removes every record for an actor",
+        "AGENTS.md - capture does not leave the machine unless the user says so, which bounds the probe to loopback"
+      ],
+      "evidence": [
+        "$ node .scratch/live-e2e.mjs -> RESULT precull records_deleted=0; RESULT cleanup records_deleted=12 remaining_for_actor=0",
+        "Live probe -> all writes scoped to a throwaway actor on 127.0.0.1:3030"
+      ],
+      "resolution": "Write to a throwaway actor on loopback, pre-clean before the run and delete after it, then assert zero records remain for that actor. Both the pre-clean and the post-condition are in the driver output.",
+      "doesNotEstablish": "That no residue exists elsewhere in the runtime; only that the actor this probe used is empty."
+    },
+    {
+      "id": "Q7",
+      "stage": "react-iterations",
+      "critical": true,
+      "question": "How are per-directory test counts obtained reliably on PowerShell 5.1?",
+      "state": "self-resolved",
+      "attempts": 5,
+      "artifactsTried": [
+        "Select-String with a recursive parameter - the parameter does not exist; the command failed",
+        "regex over the console output of the test runner, three variants - each returned zero matches against output that visibly contained the counts",
+        "a here-string pasted into the integrated terminal - left the shell at a continuation prompt and had to be killed",
+        "the vitest JSON reporter - succeeded"
+      ],
+      "evidence": [
+        "$ npx vitest run --reporter=json --outputFile=.scratch/vitest-results.json -> report written, exit 0",
+        "$ node .scratch/count-tests.mjs -> TOTAL 36 543 / numPassedTests=543 numFailedTests=0"
+      ],
+      "resolution": "Emit a machine-readable report and aggregate it in a script. The four failed strategies are recorded above because the rule they produced - when a one-liner fails twice, move the logic into a script - is worth more than the counts.",
+      "doesNotEstablish": "Anything about the tests themselves; this is a measurement failure, not a defect."
+    },
+    {
+      "id": "Q8",
+      "stage": "react-iterations",
+      "critical": false,
+      "question": "Should the task list be enumerated with the openspec instructions apply command?",
+      "state": "withdrawn",
+      "attempts": 1,
+      "artifactsTried": [
+        "The same command for another change family - its JSON payload is roughly 34 KB, which overflows the terminal and truncates exactly the task text being read"
+      ],
+      "evidence": [
+        "openspec/changes/cortexbridge-perception-layer/tasks.md - the task file is the authoritative list and is read directly"
+      ],
+      "resolution": "Withdrawn rather than open: the question dissolves because the command is not the source of truth for tasks and its output does not survive the terminal.",
+      "reason": "The command's output cannot be read reliably at this size, and the file it would summarise is already available and smaller."
+    },
+    {
+      "id": "Q9",
+      "stage": "planning",
+      "critical": false,
+      "question": "Is scripts/clarity.js added to the lint gate, or left unlinted like scripts/traceability.js?",
+      "state": "self-resolved",
+      "attempts": 2,
+      "artifactsTried": [
+        "package.json - the lint script is eslint src tests, so no file under scripts/ has ever been linted",
+        "eslint.config.js - the flat config applies the TypeScript recommended set and does not declare globals for a plain ESM node script"
+      ],
+      "evidence": [
+        "package.json - lint = eslint src tests",
+        "$ npm run lint -> exit 0, which is consistent with scripts/clarity.js not being read by the linter",
+        "$ npm run test:clarity -> exit 0"
+      ],
+      "resolution": "Leave it unlinted, matching scripts/traceability.js. Both gates are exercised by their own spec, and widening the lint set to plain node scripts would need a globals declaration, which is a separate change with its own blast radius.",
+      "doesNotEstablish": "That scripts/clarity.js is free of defects. It records only that the lint gate does not read it, so the spec is the sole mechanical check on that file."
+    },
+    {
+      "id": "Q10",
+      "stage": "react-iterations",
+      "critical": true,
+      "question": "The superseded client src/api/client.ts is present in src/ and three gates forbid it. Delete it, quarantine it outside src/, or exempt it from the scans?",
+      "state": "self-resolved",
+      "attempts": 4,
+      "artifactsTried": [
+        "grep_search for HipCortexClient across src and tests - three matches, all inside src/api/client.ts itself; nothing imports it",
+        "grep_search of openspec/changes/cortexbridge-perception-layer/tasks.md for client.ts - empty, so the plan never disposed of the file explicitly",
+        "read tests/quality/source-scans.spec.ts and tests/api/transport.spec.ts - the scans enumerate every file under src/ and offer no exemption list, so quarantining inside src/ cannot pass",
+        "read tasks.md 4.2 and 4.13 - 4.2 creates src/api/transport/http.ts by moving the client logic and 4.13 migrates the router off HipCortexClient.fromSettings()"
+      ],
+      "evidence": [
+        "grep_search for HipCortexClient -> src/api/client.ts:9, :145, :146 only; grep for client.js imports -> no matches",
+        "$ npx vitest run tests/api/transport.spec.ts tests/quality/source-scans.spec.ts -> Test Files 2 passed (2) / Tests 63 passed (63), exit 0",
+        "$ npm test -> Test Files 37 passed (37) / Tests 590 passed (590), exit 0",
+        "$ git show HEAD:src/api/client.ts -> 138 lines, so the removal is reversible from history"
+      ],
+      "resolution": "Delete it. The plan's own wording is that the transport is created by moving that logic, and the router was already migrated, so the file is a leftover rather than a second implementation. Removal also restores the three scans it was failing: the single fetch call site in src/api/transport/http.ts, the absence of the silent-failure path required by G5.5, and the absence of the superseded capture path. The three tests were not touched.",
+      "doesNotEstablish": "That the deleted surface behaved like the transport that replaced it. It establishes absence only; equivalence is what tests/api/transport.spec.ts asserts, and the historical behaviour is no longer executable."
+    },
+    {
+      "id": "Q11",
+      "stage": "unknowns",
+      "critical": false,
+      "question": "package-lock.json is gitignored and nothing in the repository records why, so installs are not reproduced from a pinned tree. Is that a standing decision or an omission?",
+      "state": "open-with-exit",
+      "attempts": 2,
+      "artifactsTried": [
+        "grep for package-lock across every non-ignored .md, .json and .js - no matches, so no document states the reason",
+        "read .gitignore - the file is listed on its own with no comment, while the dist/ entry above it carries one",
+        "grep of docs/END-STATE.md for a reproducibility criterion - none of the 62 criteria mentions installs or dependencies"
+      ],
+      "exitCondition": "Closed by the change that either stops ignoring the lockfile or records the reason for ignoring it in .gitignore and a section of the repository docs, or by any release whose install is reconstructed on a second host.",
+      "doesNotEstablish": "That the current ignore rule has caused a problem. No gate reads dependencies, every recorded run used the same tree, and this question is a gap in the record rather than an observed failure."
+    },
+    {
+      "id": "Q12",
+      "stage": "validation-planning",
+      "critical": false,
+      "question": "Tasks 8.12 and 8.13 are manual browser gates. Can a Playwright/CDP-driven run with the extension actually loaded discharge either one, or does the word manual make them irreducible?",
+      "state": "self-resolved",
+      "attempts": 4,
+      "artifactsTried": [
+        "read the Playwright MCP browser's own chrome://version shadow DOM - real Chrome 152 under --remote-debugging-pipe with a persistent profile and no --load-extension, so a browser that is already running cannot adopt dist/",
+        "launched Chromium with --load-extension=dist and --disable-extensions-except=dist - zero extensions listed, chrome.runtime undefined on chrome-extension://.../popup.html, no diagnostic on stderr, so the switch is silently ignored",
+        "read chrome://extensions through the shadow DOM after CDP Extensions.loadUnpacked - the extension loads and is listed, so the CDP domain is the supported path",
+        "read tasks.md 8.12 and 8.13 and docs/END-STATE.md G6.4 - each gate enumerates its sub-items, so partial execution is measurable rather than a matter of opinion"
+      ],
+      "evidence": [
+        "$ node .scratch/browser-e2e.mjs -> 23/23 checks passed, exit 0, against the live core at 127.0.0.1:3030",
+        "load unpacked from dist/ -> listed in chrome://extensions as HipCortex Memory, id okclkjijdcgimdclgohehndbllbkiemi, background.js service worker starts",
+        "popup online/offline -> badge online with class badge healthy against the live core, offline with class badge unhealthy against a dead loopback port, back to online after restore",
+        "options test connection -> a real click returned Connected - connected (com.hipcortex.bridge) via auto mode, no fallback",
+        "context-menu capture -> chrome.contextMenus.onClicked originates from Chrome's OS-level menu, which CDP input does not reach, and no API enumerates created menu items",
+        "side panel via Ctrl+Shift+H -> sidepanel.html renders, but chrome.commands.onCommand is resolved above the renderer, so a CDP keyDown cannot fire it"
+      ],
+      "resolution": "It discharges part of 8.12 and none of 8.13. Load unpacked, popup online/offline and options test connection are now executed with output; options save, manual add, context-menu capture and the Ctrl+Shift+H side panel are not, and three of those are unreachable by CDP for reasons of browser architecture rather than tooling. Both gates stay unchecked and the evidenced subset is recorded as section 10.15 of tasks.md, because flipping a gate whose own text enumerates five sub-items on a partial run would convert a precise open item into a false one. The probe is not wired into package.json and lives under the gitignored .scratch/, so the four-command verify chain pinned by tests/quality/gates.spec.ts is untouched.",
+      "doesNotEstablish": "That the unchecked sub-items work, and that Consumer Mode delivers a capture end to end. The run observed resolution.active native with fellBack false, but it captured nothing on purpose, because an unacknowledged capture is a correctness matter under the retention boundary rather than a test detail."
+    },
+    {
+      "id": "Q13",
+      "stage": "validation-planning",
+      "critical": true,
+      "question": "Does this project work as intended, how would we know, and will it work in production? Where exactly is the boundary between what is verified and what is assumed?",
+      "state": "open-with-exit",
+      "attempts": 3,
+      "artifactsTried": [
+        "read README.md 'Known limitations' - it names three gaps itself, including that provider fixtures are structurally faithful but synthetic and are not evidence that a rung matches today's live DOM",
+        "read tests/capture/content.spec.ts - the content script is driven against parseFixture(readFixture('chatgpt','conversation.html')), the same hand-authored fixture the adapter ladders were written from, so the provider-page input is ours rather than observed",
+        "read tasks.md 8.12, 8.13 and section 10.15 - the two browser-manual gates covering a real provider conversation remain unchecked, and 10.15 records which sub-items CDP cannot reach",
+        "read README.md and docs/PROTOCOL.md section 9 - at the time no native messaging host installer existed, so the default auto transport resolved to a path with no installer in production",
+        "read src/capture/providers/chatgpt.ts - verifiedAt is 2025-01-15, and docs/END-STATE.md G8.1 asserts only that the date is not in the future"
+      ],
+      "exitCondition": "Closed by one end-to-end run on one real provider: load unpacked from dist/, grant that host's optional permission through the native prompt, open a real conversation with autoCapture enabled, and record whether an event reaches the core with correct provenance - then repeated per provider. A typed DOM_SHAPE_UNRECOGNIZED failure naming a slot or rung is a valid result and closes it too. The installer half of this boundary is discharged by Q14; what remains open is the real-provider run, which no test can substitute for.",
+      "doesNotEstablish": "That anything in the plumbing is wrong. Every internal link is verified with output; what is unverified is narrower and sharper - whether a real provider page resembles the fixture the whole chain was built against. The gap is at the input, not along the path.",
+      "newEvidence": [
+        "host/bridge-host.mjs -> the missing half was built, so the default auto transport now resolves to a path that has an installer behind it",
+        "$ npm test -- tests/host/end-to-end.spec.ts -> 5 tests passed against a real HTTP core; the one leg still unrun is Chrome handing the port to a loaded extension",
+        "docs/PROTOCOL.md -> section 9 rewritten from 'assumed, not verified' to what was executed and what remains unrun"
+      ]
+    },
+    {
+      "id": "Q14",
+      "stage": "goals",
+      "critical": true,
+      "question": "docs/END-STATE.md declared G1-G8, and none of them owns installation. A user who installed only the extension therefore reached a working component that stored nothing, and when it failed it told them to check a runtime they had never installed. Does closing that gap require amending a boundary decision, or is the missing half inside this repository's own boundary?",
+      "state": "self-resolved",
+      "attempts": 3,
+      "artifactsTried": [
+        "read docs/END-STATE.md in full, and searched it for 'standalone' -> the word appears nowhere, so no declared goal was violated; the goal was simply absent",
+        "read public/manifest.json permissions -> [storage, contextMenus, activeTab, sidePanel, scripting, nativeMessaging, alarms]; there is no downloads and no management, so no API can fetch or install software",
+        "read AGENTS.md -> the browser layer is named CortexBridge and the HipCortex core lives in a separate repository that must never be imported or vendored from here",
+        "read docs/PROTOCOL.md section 9 -> the native messaging envelope, the host name and both message shapes were recorded as assumed, not verified, because no host installer existed"
+      ],
+      "evidence": [
+        "$ npm run test:traceability -> criteria declared : 67 (docs/END-STATE.md); criteria cited : 67/67 by 56 requirement headings, up from 62/62",
+        "$ npm test -- tests/host/end-to-end.spec.ts -> 5 tests passed: a real frame on stdin answered by a real frame on stdout against a real HTTP core",
+        "openspec/changes/installable-product/specs/native-host-install/spec.md -> G9.1-G9.5 cited by five requirement headings",
+        "host/bridge-host.mjs -> a transport shim: it forwards to POST /memory/add and holds no memory, no decisions and no extracted meaning"
+      ],
+      "resolution": "Chrome cannot install software, and the missing half is the native messaging host whose registered name com.hipcortex.bridge is CortexBridge - this repository's own layer per AGENTS.md. Route A was taken: ship the host from this repo behind a documented unelevated command, and report honestly which state the user is in. No boundary decision is amended and no cognition moves - E5 stands because the shim extracts no meaning, and E10 stands because nothing non-loopback is declared.",
+      "doesNotEstablish": "That the user's phrasing (the extension installs the core itself) was satisfied - it was rejected as not implementable, not as unnecessary. Route B would require amending E10 and G7.2/G7.3 to an allow-list for a hosted core; Route C would require revising E5 and the AGENTS.md boundary. Neither is authorised by this repository alone, so the choice of Route A is recorded as an autonomous decision for the user to review."
+    },
+    {
+      "id": "Q15",
+      "stage": "acceptance-criteria",
+      "critical": false,
+      "question": "G9.1 requires three connection states to be reported distinctly. Can that be proven by driving the formatter with a hand-built HealthReport, or does the criterion require the shipped transport and the shipped surface?",
+      "state": "self-resolved",
+      "attempts": 2,
+      "artifactsTried": [
+        "read tests/helpers/surface.ts -> bootSurface mounts the shipped public HTML from disk and routes replies, so the markup under test cannot drift from the packaged extension",
+        "read tests/helpers/chrome-mock.ts -> installNativeHost answers a native port with a typed reply, so the real transport can be driven end to end inside jsdom",
+        "read src/api/transport/native.ts and src/options.ts -> the defect being fixed was in the transport's verdict, not in the formatter, so a hand-built report would have baked the bug into the fixture"
+      ],
+      "evidence": [
+        "$ npm test -- tests/surfaces/connection-states.spec.ts -> 15 tests passed, each deriving its report from the real transport over a mocked host",
+        "tests/surfaces/connection-states.spec.ts -> the healthy case is asserted with toBe against the identical text produced in both install orders",
+        "$ npm test -- tests/options/connection-test.spec.ts -> 6 tests passed, including Unreachable for a transport that reports no connection state"
+      ],
+      "resolution": "The criterion is proven only through the shipped pair. The spec boots the shipped options page and the shipped popup and side panel, substitutes the browser's native-messaging layer and nothing else, and derives every report from transport.health() and transport.resolve(), so a regression in the transport fails the surface spec.",
+      "doesNotEstablish": "That a real Chrome resolves a registered host and hands the port to a loaded extension. That leg needs a browser and a loaded extension rather than a spawned process, and it is named as unrun in docs/PROTOCOL.md section 9 and in task 2.7."
+    },
+    {
+      "id": "Q16",
+      "stage": "react-iterations",
+      "critical": false,
+      "question": "Narrowing the surface to the three native states broke tests/options/connection-test.spec.ts, which expects Unreachable for the HTTP path. Is that spec stale, or did the new branch over-reach?",
+      "state": "self-resolved",
+      "attempts": 1,
+      "artifactsTried": [
+        "read the failure output -> expected 'Installed but not running: unreachable...' to contain 'Unreachable'",
+        "read tests/options/connection-test.spec.ts -> its fixture carries no connection field, so it exercises exactly the transport that cannot distinguish the two failures",
+        "read src/options.ts describeResult -> the new wording had been applied to every failure instead of only to the states the native transport can report"
+      ],
+      "evidence": [
+        "$ npx vitest run tests/surfaces/connection-states.spec.ts tests/options -> 5 files passed (5), 40 tests passed (40)",
+        "src/options.ts -> the registered-but-unreachable branch is gated on health.connection === 'core-unreachable', and the endpoint wording is the fall-through for a transport that reports no connection",
+        "tests/surfaces/connection-states.spec.ts -> keeps the endpoint wording for a transport that cannot tell the two failures apart"
+      ],
+      "resolution": "The new branch over-reached. Gating it on health.connection restored the endpoint wording for the HTTP path, and a surface test now asserts that a report with no connection state keeps Unreachable and is never given the native next action. The failure also showed the existing fixture was doing its job rather than going stale.",
+      "doesNotEstablish": "That this is the best possible wording for a transport with one failure mode - only that it is the wording that path had before, and that changing it was not part of G9."
+    },
+    {
+      "id": "Q17",
+      "stage": "react-iterations",
+      "critical": true,
+      "question": "The change declares G9 'installable', but has the installer ever actually been run? Is installation itself only planned, in the same way the host was?",
+      "state": "self-resolved",
+      "attempts": 2,
+      "artifactsTried": [
+        "reg query HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\com.hipcortex.bridge -> the key does not exist, so nothing has ever been registered by this installer on this machine",
+        "Test-Path %LOCALAPPDATA%\\HipCortex\\ -> False, so the install directory the plan names has never been created",
+        "read every Chrome profile's Preferences and Secure Preferences -> only Claude, Playwright and web-store extension ids are present; no unpacked extension from this repository has ever been loaded, so the id the installer was waiting for could never have been obtained",
+        "read scripts/install-host.mjs -> extensionId came from --extension-id with a hard refusal when absent, so an id that cannot exist before the first load made the host-first install order impossible rather than merely untested"
+      ],
+      "evidence": [
+        "$ node scripts/install-host.mjs --dry-run -> a correct plan for C:\\Users\\user\\AppData\\Local\\HipCortex with a bridge-host.cmd launcher",
+        "$ npm run install:host -> exit 0, registering chrome, chromium, edge and brave under HKCU",
+        "$ reg query HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\com.hipcortex.bridge -> REG_SZ names the host manifest, and allowed_origins holds chrome-extension://eklnpdcephecmddelagbablmeajoogkf/",
+        "$ node scripts/probe-installed-host.mjs -> via launcher {success:true,healthy:true,core_url:http://127.0.0.1:3030,detail:HTTP 200} with empty stderr, and the same through the host file directly",
+        "GET /health -> HTTP 200 {\"service\":\"hipcortex\",\"status\":\"ok\",\"version\":\"3.11.0\"}",
+        "deriveExtensionId(dist/manifest.json) -> eklnpdcephecmddelagbablmeajoogkf, equal to the registered allowed_origins",
+        "$ npm run verify -> Test Files 41 passed (41), Tests 660 passed (660), exit 0"
+      ],
+      "resolution": "Installation was itself only planned. Registration is now executed on this machine and verified by reading it back and spawning the installed artefact, not by trusting the exit code. The blocker was structural: an unpacked extension's id is path-derived, so a required --extension-id made the documented host-first order reachable only after a first load. A key pinned in public/manifest.json makes the id derive offline, the flag became an override, and G9.5 stopped being an assertion about a mock.",
+      "doesNotEstablish": "That Chrome hands the port to a loaded extension, or that a real capture reaches the core through it. It also does not establish that the path to the installed artefact is reachable from a clean profile, since the id is heard only once an extension is loaded. Those remain open in docs/END-STATE.md open risk 2.",
+      "newEvidence": [
+        "$ npm run install:host -> Installed com.hipcortex.bridge, exit 0, four HKCU keys",
+        "public/manifest.json -> pins a key that derives to eklnpdcephecmddelagbablmeajoogkf",
+        "tests/host/framing.spec.ts -> an unknown control type is refused locally instead of being forwarded to the core"
+      ]
+    },
+    {
+      "id": "Q18",
+      "stage": "planning",
+      "critical": true,
+      "question": "The migration imports through POST /memory/add one record at a time. Was POST /memory/bulk ever viable, given that its name says it takes a batch?",
+      "state": "self-resolved",
+      "attempts": 2,
+      "artifactsTried": [
+        "docs/PROTOCOL.md section 3.1 -> one verified egress for capture, POST /memory/add, and no bulk path in the contract at all",
+        "src/api/transport/http.ts -> the transport exposes addMemory and no bulk method, so a bulk import would have had to be written from scratch",
+        "tests/migration/import.spec.ts -> the import walks the record list and calls the transport once per record"
+      ],
+      "evidence": [
+        "$ node .scratch/probe-bulk-fields.mjs -> bulk 200 {\"success\":true,\"inserted\":1,\"failed\":0}, then DIFF tags [\"capture\",\"chatgpt\"] -> []",
+        "DIFF source \"cortexbridge\" -> null and DIFF priority \"pinned\" -> \"normal\" on bulk; all four SAME on POST /memory/add",
+        "a bare array body to POST /memory/bulk -> 422 invalid type: map, expected a sequence"
+      ],
+      "resolution": "Not viable, and the name is the trap. Bulk answered success with failed: 0 while storing three different values than the export held, and it does not even accept the record list its name implies - a bare array is refused 422. Import therefore goes through POST /memory/add one record at a time, and the choice is recorded in docs/END-STATE.md G4.2 rather than left as a preference.",
+      "doesNotEstablish": "That /memory/add is field-equivalent for every record the core can hold - only for the eight fields this repository sends, on this runtime, for one probe record. It also does not establish that one-record-at-a-time traffic stays acceptable at migration scale, which is a core dependency raised in the change's design document."
+    },
+    {
+      "id": "Q19",
+      "stage": "acceptance-criteria",
+      "critical": false,
+      "question": "G4.2 says field-equivalent import. Is that criterion strong enough if priority and source can come back with different values than the export held?",
+      "state": "self-resolved",
+      "attempts": 1,
+      "artifactsTried": [
+        "docs/END-STATE.md G4.2 -> read the criterion; it said field-equivalent with a recorded id remap and named neither the path nor the fields the claim covers",
+        "src/schema/export-document.ts -> EXPORT_RECORD_FIELDS is the eight fields this repository may send, and CORE_OWNED_EXPORT_FIELDS are stripped before the write",
+        "tests/migration/round-trip.spec.ts -> asserts through the transport mock, so it can prove what is posted and cannot see what the core stores"
+      ],
+      "evidence": [
+        "$ node .scratch/probe-migration.mjs -> record[0] priority \"normal\" on the read back where the add had posted \"pinned\"",
+        "$ node .scratch/probe-bulk-fields.mjs -> SAME priority \"pinned\" -> \"pinned\" and SAME source on POST /memory/add",
+        "hipcortex backup --url http://127.0.0.1:3030 -o .scratch/mig.bak.json --actor probe-migration-7031 -> Backed up 2 records, same stored values as the REST read"
+      ],
+      "resolution": "The criterion was right and its wording was vague. Field-equivalent means the fields this repository sends arrive with the values it sent, which POST /memory/add satisfies and POST /memory/bulk did not, so G4.2 now names the path, the three fields that were measured losing their values, and both proving specs. No code changed: the gap was on the wire, not in the client.",
+      "doesNotEstablish": "That the round trip is byte-identical - id and integrity are regenerated by design and the core-owned fields are dropped before the write. It also says nothing about a record that did not originate here, which would carry fields the export document refuses."
+    },
+    {
+      "id": "Q20",
+      "stage": "unknowns",
+      "critical": true,
+      "question": "The interpretation table claims migration across HipCortex surfaces is achievable by shared substrate. Has any of that ever been read back, or is it still an architectural assertion?",
+      "state": "self-resolved",
+      "attempts": 1,
+      "artifactsTried": [
+        "docs/END-STATE.md interpretation table -> the row read achievable by shared substrate, but unverified, with no probe named",
+        "docs/PROTOCOL.md section 6 -> the verified contract names the export endpoint, so a read was possible without guessing at a path",
+        "hipcortex --help -> the only CLI read path is backup, which takes --url, --output and --actor"
+      ],
+      "evidence": [
+        "$ node .scratch/probe-crosssurface.mjs -> cli === rest : true, cli === mcp : true, same id on both machine reads: true",
+        "MCP search_memory -> Found 1 result(s) with all three messages, same order and text as GET /memory/export",
+        "hipcortex backup --url http://127.0.0.1:3030 --actor probe-crosssurface-tgf8 -> Backed up 1 records, then forget -> records_deleted: 1, 0 left"
+      ],
+      "resolution": "Verified for the three machine surfaces and left unverified for the browser, which is what the row now says. One capture delivered through this repository's own egress code was read back three ways with the same messages in the same order, so docs/END-STATE.md moved the row to verified for REST, CLI and MCP and G4.4 records the browser half as a manual gate rather than as delivered work.",
+      "doesNotEstablish": "That a capture made by a real provider tab is retrievable this way - the capture was produced by the shipped egress code under Node. It also does not establish the VS Code surface, which lives in another repository and was not read."
+    }
+  ]
+}

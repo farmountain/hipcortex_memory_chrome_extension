@@ -1,0 +1,31 @@
+<!doctype html>
+<!--
+  Degraded: four turn containers, but the third has an empty bubble. Producing a three-message
+  conversation would be a *partial success*, which is the one outcome G8.7 forbids outright — the
+  core would retain a conversation that is silently missing a turn.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redacted conversation</title>
+  </head>
+  <body>
+    <main>
+      <div data-testid="conversation">
+        <div data-testid="conversation-turn" data-message-author-role="user">
+          <div class="message-bubble">REDACTED-USER-1</div>
+        </div>
+        <div data-testid="conversation-turn" data-message-author-role="assistant">
+          <div class="response-content-markdown"><p>REDACTED-ASSISTANT-1</p></div>
+        </div>
+        <div data-testid="conversation-turn" data-message-author-role="user">
+          <div class="message-bubble"></div>
+        </div>
+        <div data-testid="conversation-turn" data-message-author-role="assistant">
+          <div class="response-content-markdown"><p>REDACTED-ASSISTANT-2</p></div>
+        </div>
+      </div>
+    </main>
+    <div class="composer"><textarea></textarea></div>
+  </body>
+</html>

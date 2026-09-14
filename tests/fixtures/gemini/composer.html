@@ -1,0 +1,23 @@
+<!doctype html>
+<!--
+  The Gemini composer fixture (`capture-context-injection` task 1.2).
+
+  Gemini renders its input inside the custom element `<rich-textarea>` with a Quill editor behind it.
+  The custom element is both a landmark and the field's container, so a fixture missing it would fail
+  at the landmark check rather than at a rung — which is why it is reproduced here rather than being
+  flattened into a plain `<textarea>`.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Gemini</title>
+  </head>
+  <body>
+    <main>
+      <div class="conversation-container">REDACTED-EMPTY-CONVERSATION</div>
+      <rich-textarea>
+        <div class="ql-editor" contenteditable="true" role="textbox"></div>
+      </rich-textarea>
+    </main>
+  </body>
+</html>

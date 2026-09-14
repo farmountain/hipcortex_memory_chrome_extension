@@ -1,0 +1,18 @@
+<!doctype html>
+<!--
+  Degraded: the shell and the conversation root are recognised, but the root holds no turns. This is
+  what a still-booting conversation looks like, and it must be `EMPTY_CONVERSATION` rather than an
+  empty success — the core retains whatever it is told, so an empty conversation is a false memory.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redacted conversation</title>
+  </head>
+  <body>
+    <main>
+      <conversation-container></conversation-container>
+    </main>
+    <div class="composer"><div contenteditable="true"></div></div>
+  </body>
+</html>

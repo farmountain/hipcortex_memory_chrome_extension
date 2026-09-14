@@ -1,0 +1,25 @@
+<!doctype html>
+<!--
+  `messageText` rung 1: text lives in `[data-message-content]`, and `.markdown` is absent so rung 0
+  cannot claim the slot.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redacted conversation</title>
+  </head>
+  <body>
+    <main id="conversation-root">
+      <div data-testid="conversation-turn-0" data-message-author-role="user">
+        <div data-message-content="true">REDACTED-USER-1</div>
+      </div>
+      <div data-testid="conversation-turn-1" data-message-author-role="assistant">
+        <div data-message-content="true">REDACTED-ASSISTANT-1</div>
+      </div>
+      <div data-testid="conversation-turn-2" data-message-author-role="user">
+        <div data-message-content="true">REDACTED-USER-2</div>
+      </div>
+    </main>
+    <form class="composer"><textarea placeholder="Message ChatGPT"></textarea></form>
+  </body>
+</html>

@@ -2,8 +2,19 @@
 node_modules/
 package-lock.json
 
-# Build artifacts that can be regenerated (keep dist for easy load-unpacked)
-# We intentionally keep dist/ for convenience
+# Build artifacts
+# dist/ is NOT tracked. D8 in docs/END-STATE.md decided it must stop being committed, because a
+# stale dist/ can mask a broken build; task 1.11 discharged that with `git rm -r --cached dist`, and
+# `git ls-files dist` now returns nothing. Run `npm run build` before claiming a change works.
+dist/
+
+# Reproducible probe evidence (scratch scripts that recreate the docs/PROTOCOL.md results).
+# Local evidence only - never shipped, never committed.
+.scratch/
+
+# Playwright MCP output (page snapshots written next to the workspace by the browser tooling).
+# Local tool output only - never shipped, never committed.
+.playwright-mcp/
 
 # OS / editor
 .DS_Store

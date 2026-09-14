@@ -3,7 +3,8 @@
   "name": "HipCortex Memory",
   "short_name": "HipCortex",
   "version": "0.1.0",
-  "description": "Persistent causal memory for AI agents in the browser. Capture decisions, query knowledge, inject lean context. Local-first, privacy-preserving.",
+  "description": "Capture your ChatGPT, Claude, Grok, Gemini and DeepSeek conversations into a local-first HipCortex memory. No cloud.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApyQbZtyawt6sVtpS0ybo845W+U4xwVbrxhTEjL7AYFwo/My3FNCaDy541xLJJrNe1xAscrchV7+crzcuTJqHLqqbqyifamYCL6tQIqJ8WwbMltoQOzDpk7J+7I+1YaUhJLQH+cvY+CTbVQAA5E/dzEvyuEY/RN16XVaCCCldZgDDXSWtRfQ3eF4YIyAI3n39n6wOKiSxZE1456VmwibUpVez1vMhGerLlf6CzYlJTjbdH8ur6RSW0zFLp1E3epUICGPREyppnJAHmNs8qXTcLVHpAHKKCqhLhUV1Dcrgse7MqCQWgkju+0REnSOaAYP8nZlBrfUzFOQWyZU0thRRNwIDAQAB",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -35,20 +36,38 @@
     "contextMenus",
     "activeTab",
     "sidePanel",
-    "scripting"
+    "scripting",
+    "nativeMessaging",
+    "alarms"
   ],
   "host_permissions": [
     "http://127.0.0.1:3030/*",
-    "http://localhost:3030/*",
-    "https://hipcortex.fly.dev/*"
+    "http://localhost:3030/*"
   ],
   "optional_host_permissions": [
     "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
     "https://claude.ai/*",
     "https://gemini.google.com/*",
-    "https://chat.openai.com/*"
+    "https://grok.com/*",
+    "https://chat.deepseek.com/*"
   ],
-  "content_scripts": [],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*",
+        "https://grok.com/*",
+        "https://chat.deepseek.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
   "commands": {
     "open-side-panel": {
       "suggested_key": {

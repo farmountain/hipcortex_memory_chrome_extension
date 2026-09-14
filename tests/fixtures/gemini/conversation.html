@@ -1,0 +1,31 @@
+<!doctype html>
+<!--
+  The canonical Gemini conversation: four turns built from the provider's custom elements, two roles,
+  and both `messageText` rungs in use (markdown for a model response, the query block for a user
+  turn). Shaped to the adapter's declared ladders — it is not a recording of the live page.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redacted conversation</title>
+  </head>
+  <body>
+    <main>
+      <conversation-container>
+        <user-query data-message-author-role="user">
+          <div class="query-text">REDACTED-USER-1</div>
+        </user-query>
+        <model-response data-message-author-role="assistant">
+          <div class="markdown"><p>REDACTED-ASSISTANT-1</p></div>
+        </model-response>
+        <user-query data-message-author-role="user">
+          <div class="query-text">REDACTED-USER-2</div>
+        </user-query>
+        <model-response data-message-author-role="assistant">
+          <div class="markdown"><p>REDACTED-ASSISTANT-2</p></div>
+        </model-response>
+      </conversation-container>
+    </main>
+    <div class="composer"><div contenteditable="true"></div></div>
+  </body>
+</html>

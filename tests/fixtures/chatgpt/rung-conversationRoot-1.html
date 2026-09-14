@@ -1,0 +1,28 @@
+<!doctype html>
+<!--
+  `conversationRoot` rung 1: the root is a `div[role="main"]` inside a plainer `<main>` shell.
+  Rung 0 (`main#conversation-root`) must not match, or this fixture proves nothing — hence the
+  outer `<main>` deliberately carries no id.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redacted conversation</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <div role="main" id="conversation-root">
+        <div data-testid="conversation-turn-0" data-message-author-role="user">
+          <div class="whitespace-pre-wrap">REDACTED-USER-1</div>
+        </div>
+        <div data-testid="conversation-turn-1" data-message-author-role="assistant">
+          <div class="markdown"><p>REDACTED-ASSISTANT-1</p></div>
+        </div>
+        <div data-testid="conversation-turn-2" data-message-author-role="user">
+          <div class="whitespace-pre-wrap">REDACTED-USER-2</div>
+        </div>
+      </div>
+    </main>
+    <form class="composer"><textarea placeholder="Message ChatGPT"></textarea></form>
+  </body>
+</html>

@@ -16,6 +16,8 @@
       </div>
     </header>
 
+    <div id="egress-banner" class="egress-banner hidden" role="status"></div>
+
     <section class="quick-add">
       <label for="memory-text">Capture memory</label>
       <textarea id="memory-text" rows="3" placeholder="Decision, fact, or observation…"></textarea>
@@ -23,15 +25,47 @@
         <input id="memory-action" type="text" placeholder="action (e.g. decided)" value="noted" />
         <button id="btn-add" class="primary">Add</button>
       </div>
+      <p id="add-error" class="error-line hidden"></p>
+    </section>
+
+    <section class="capture-status" id="capture-status">
+      <div class="capture-row">
+        <span class="capture-label">Passive capture</span>
+        <span id="capture-passive" class="capture-value">…</span>
+      </div>
+      <div class="capture-row">
+        <span class="capture-label">Queued</span>
+        <span id="capture-queued" class="capture-value">…</span>
+      </div>
+      <div class="capture-row">
+        <span class="capture-label">Unacknowledged</span>
+        <span id="capture-unacknowledged" class="capture-value">…</span>
+      </div>
+      <p id="capture-paused" class="capture-paused hidden"></p>
+      <button id="btn-export-queue" class="secondary capture-export" disabled>
+        Export undelivered captures
+      </button>
+      <p id="capture-export-note" class="capture-export-note hidden" role="status" aria-live="polite"></p>
     </section>
 
     <section class="search">
       <label for="search-query">Search</label>
       <div class="row">
-        <input id="search-query" type="text" placeholder="Query causal graph…" />
+        <input id="search-query" type="text" placeholder="Query captured conversations…" />
         <button id="btn-search" class="secondary">Go</button>
       </div>
+      <div class="row">
+        <select id="search-scope" title="Where the search runs">
+          <option value="local" selected>Captured conversations (offline)</option>
+          <option value="core">Runtime (semantic)</option>
+        </select>
+        <select id="search-provider" title="Filter by the provider that captured it">
+          <option value="">Any provider</option>
+        </select>
+      </div>
       <div id="search-results" class="results"></div>
+      <button id="btn-clear-index" class="secondary capture-export" disabled>Clear local search index</button>
+      <p id="index-note" class="capture-export-note" role="status" aria-live="polite"></p>
     </section>
 
     <footer>
