@@ -46,6 +46,14 @@ copies `public/*` and generates icons. There is no webpack/vite step.
   `chrome.storage.local`, never in sync.
 - **`chrome.error` is silently swallowed** — `chrome.runtime.lastError` must be read in every
   callback-based API (`connectNative`, `sendNativeMessage`, `tabs.query`).
+- **`key` pins the ID of the unpacked build, and must never reach the store** — `public/manifest.json`
+  carries a `key` so that the extension loaded from `dist/` has a stable ID, because the native
+  messaging host has to name that ID in `allowed_origins` before the extension has ever been loaded,
+  and `scripts/install-host.mjs` derives the ID from it. Do not remove the field, and do not ship it:
+  the Chrome Web Store **refuses the whole package** when the manifest carries one (*"key field is not
+  allowed in manifest"*) and assigns the published item its own ID instead. `npm run package` therefore
+  strips it from the archived `manifest.json` only, leaving `dist/` pinned. `docs/STORE.md` §11 is the
+  step that reconciles the two IDs after the first upload.
 
 ## Before you claim it works
 

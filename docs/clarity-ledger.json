@@ -9,7 +9,7 @@
   "stages": [
     { "stage": "goals", "entries": ["Q1", "Q14"] },
     { "stage": "acceptance-criteria", "entries": ["Q2", "Q15", "Q19"] },
-    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24", "Q25"] },
+    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24", "Q25", "Q26"] },
     { "stage": "unknowns", "entries": ["Q4", "Q5", "Q11", "Q20", "Q21"] },
     { "stage": "planning", "entries": ["Q6", "Q9", "Q18"] },
     { "stage": "react-iterations", "entries": ["Q7", "Q8", "Q10", "Q16", "Q17"] }
@@ -523,6 +523,31 @@
       ],
       "resolution": "Nothing requests them, and that is not a defect. Capture on those origins is granted at install time by content_scripts.matches, not by a runtime permission request, so the optional declaration is inert. It stays because G1.9 requires it and manifest.spec.ts fails without it. The instruction file was wrong to describe a runtime request and has been corrected; the store runbook now answers the question before a reviewer asks it.",
       "doesNotEstablish": "That the store accepts an optional declaration nothing calls - the package has not been uploaded, so the review outcome is untested. It also does not establish that capture works on any provider page; that is the browser gate 8.12, which no test in this repository can reach."
+    },
+    {
+      "id": "Q26",
+      "stage": "validation-planning",
+      "critical": true,
+      "question": "The archive pins the extension ID with a key field. Does the Chrome Web Store accept a package that carries that field?",
+      "state": "self-resolved",
+      "attempts": 1,
+      "artifactsTried": [
+        "the Developer Dashboard upload of hipcortex-chrome-extension-v0.1.0.zip - the whole file was refused",
+        "https://developer.chrome.com/docs/extensions/reference/manifest/key - the documented order is the reverse: upload without the field, then copy the public key the dashboard shows into it",
+        "scripts/install-host.mjs - derives the ID from the key, so allowed_origins can name an extension that has never been loaded",
+        "tests/host/registration.spec.ts - asserts the shipped manifest pins a usable key, so deleting the field would fail the gate",
+        "scripts/package.js and scripts/zip.js - the only place the upload archive is written, and so the only place the field can be removed without touching dist/"
+      ],
+      "evidence": [
+        "$ upload of the v0.1.0 archive to the Developer Dashboard -> There was a problem uploading your file: key field is not allowed in manifest",
+        "$ npm run package then an independent read of the archive with System.IO.Compression -> entries=168 backslash=0 rootManifest=1 and the archived manifest has no key field",
+        "$ node -e import of scripts/install-host.mjs -> defaultExtensionId() still returns eklnpdcephecmddelagbablmeajoogkf, because dist/manifest.json keeps the field",
+        "$ npx vitest run tests/quality/zip.spec.ts -> 11 passed, four of them pinning the removal, the byte pass-through of every other entry and the no-op case",
+        "$ gh release upload v0.1.0 --clobber then gh release download v0.1.0 -> the published asset is byte-identical to the built file, 229710 bytes, and its manifest carries no key",
+        "$ npm run verify -> Test Files 55 passed, Tests 848 passed, exit 0"
+      ],
+      "resolution": "Not accepted, and the field had to go - but not from dist/. The store refuses any package whose manifest carries a key and derives the published item's ID from a public key it generates itself, so the store ID will not be the pinned one. The field is therefore stripped from the archived manifest only, by storeSafeEntries in scripts/zip.js, which package.js applies and then checks; dist/manifest.json keeps it, because the native host's allowed_origins is derived from it. README.md, docs/STORE.md, docs/PRIVACY.md, docs/PROTOCOL.md, docs/END-STATE.md and the MV3 instruction file now say which of the two IDs each statement is about, and section 11 of docs/STORE.md records the post-upload step that replaces the key with the store's public key and re-registers the host.",
+      "doesNotEstablish": "That the store accepts the corrected archive - the upload is manual and has not been retried. It also does not establish the published item's ID, which the store assigns on first upload and which therefore remains unknown; that is why the post-upload step exists. And it does not establish that a store installation reaches the core, because the key replacement and the host re-registration are steps a person performs."
     }
   ]
 }

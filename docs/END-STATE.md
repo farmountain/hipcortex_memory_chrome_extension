@@ -546,6 +546,14 @@ host-first install order impossible — G9.5 would have been an assertion about 
 the built artefact rather than the source: `deriveExtensionId(dist/manifest.json)` equals the
 `allowed_origins` entry the registered host holds, and the `key` survives `npm run build`.
 
+That last fact is about the **unpacked** build and about nothing else, which the store made concrete:
+it refuses a package whose manifest carries a `key` at all, and derives the published item's ID from a
+public key it generates itself. So `npm run package` now strips the field from the archived copy
+while `dist/` keeps it, because `allowed_origins` depends on it, and the two IDs are reconciled after
+the first upload by replacing the `key` with the store's public key — the procedure in
+`docs/STORE.md` §11. Until that replacement is made the published item's ID is unknown, and no
+sentence in this repository that names `eklnpdcephecmddelagbablmeajoogkf` is a claim about it.
+
 The migration leg was then exercised on the same runtime, and it changed what G4 says.
 `GET /memory/export?actor=` returned every record with `metadata`, `priority`, `record_type` and `tags`
 intact, and an actor with no records returned `{"exported_at":…,"records":[],"total":0}` — an empty

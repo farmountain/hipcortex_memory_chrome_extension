@@ -45,7 +45,7 @@ disk, fails `npm run test:traceability` (`G6.8`).
 
 | Document | Owns |
 |----------|------|
-| [`docs/STORE.md`](./STORE.md) | The Chrome Web Store submission: the archive to upload, the paste-ready listing copy, the permission justifications, the reviewer instructions, and an explicit list of what is still missing |
+| [`docs/STORE.md`](./STORE.md) | The Chrome Web Store submission: the archive to upload, the paste-ready listing copy, the permission justifications, the reviewer instructions, the post-upload step that reconciles the local extension ID with the ID the store assigns, and an explicit list of what is still missing |
 | [`docs/PRIVACY.md`](./PRIVACY.md) | The privacy policy the store requires once personal communications are declared. It is a user-facing surface, so its claims are checked like any other assertion |
 
 Uploading is a manual step in the Developer Dashboard. Nothing in this repository uploads anything,

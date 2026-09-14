@@ -19,7 +19,7 @@ import { inflateRawSync } from "node:zlib";
 
 import { afterAll, describe, expect, it } from "vitest";
 
-import { collectFiles, createZip, crc32, readZipNames } from "../../scripts/zip.js";
+import { collectFiles, createZip, crc32, readZipNames, storeSafeEntries } from "../../scripts/zip.js";
 
 const FIXTURE = mkdtempSync(path.join(tmpdir(), "hipcortex-zip-"));
 mkdirSync(path.join(FIXTURE, "nested", "deeper"), { recursive: true });
@@ -88,5 +88,55 @@ describe("the archive the store receives is ZIP-conformant — task 1.10", () =>
   it("computes the CRC-32 the format defines", () => {
     // The standard check value for the ASCII string "123456789".
     expect(crc32(Buffer.from("123456789"))).toBe(0xcbf43926);
+  });
+});
+
+describe("the archived manifest drops the field the store refuses", () => {
+  // Submitting an archive that still carried `key` was refused by the dashboard with *"key field is
+  // not allowed in manifest"*, and the failure existed only on the store's side: `dist/` keeps the
+  // field, so loading the extension unpacked looked identical either way.
+  const pinned = {
+    name: "manifest.json",
+    content: Buffer.from(
+      `${JSON.stringify(
+        { manifest_version: 3, name: "HipCortex Memory", version: "0.1.0", key: "a-placeholder-key-value" },
+        null,
+        2
+      )}\n`
+    ),
+  };
+  const icon = { name: "icons/icon16.png", content: Buffer.from([0x89, 0x50, 0x4e, 0x47]) };
+
+  it("removes key from the root manifest and leaves every other field alone", () => {
+    const [manifest] = storeSafeEntries([pinned, icon]);
+    const parsed = JSON.parse(manifest.content.toString("utf8")) as Record<string, unknown>;
+
+    expect(parsed).not.toHaveProperty("key");
+    expect(parsed.manifest_version).toBe(3);
+    expect(parsed.name).toBe("HipCortex Memory");
+    expect(parsed.version).toBe("0.1.0");
+  });
+
+  it("passes every other entry through untouched and in order", () => {
+    const entries = storeSafeEntries([pinned, icon]);
+
+    expect(entries.map((entry) => entry.name)).toEqual(["manifest.json", "icons/icon16.png"]);
+    expect(entries[1].content.equals(icon.content)).toBe(true);
+    expect(entries[1]).toBe(icon);
+  });
+
+  it("returns the manifest byte-identical when it pins no key", () => {
+    // Re-serialising unconditionally would rewrite a manifest that never needed changing, which
+    // would make the archive of a key-free extension unstable for no reason.
+    const plain = { name: "manifest.json", content: Buffer.from('{"manifest_version":3}') };
+
+    expect(storeSafeEntries([plain])[0]).toBe(plain);
+  });
+
+  it("still yields an archive whose root manifest parses without the field", () => {
+    const archive = createZip(storeSafeEntries([pinned, icon]), new Date(2026, 0, 1, 12, 0, 0));
+
+    expect(readZipNames(archive)).toEqual(["manifest.json", "icons/icon16.png"]);
+    expect(JSON.parse(firstEntryBytes(archive).toString("utf8"))).not.toHaveProperty("key");
   });
 });

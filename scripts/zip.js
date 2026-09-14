@@ -9,6 +9,8 @@
  *
  * Pure and side-effect free apart from reading the directory passed to `collectFiles`, so the
  * separator rule can be pinned by a unit test rather than by uploading to the store and finding out.
+ * The `key` field is removed from the archived manifest for the same reason: the store refuses the
+ * package, and nothing the extension does when loaded from `dist/` could reveal that.
  */
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -53,6 +55,34 @@ export function collectFiles(dir, prefix = "") {
     else found.push({ name, content: readFileSync(path.join(dir, child.name)) });
   }
   return found;
+}
+
+/**
+ * Remove from the archived `manifest.json` the field the Chrome Web Store refuses.
+ *
+ * The store rejects the whole package when the manifest carries a `key` — *"key field is not allowed
+ * in manifest"* — because it is the store that assigns the item ID and issues the public key for it.
+ * The field is therefore meaningful only for an extension loaded from `dist/` unpacked, where it pins
+ * the ID that `scripts/install-host.mjs` derives to build the native host's `allowed_origins`.
+ *
+ * So it has to be removed from the upload archive and kept in `dist/`, which is a distinction no
+ * behaviour of the extension can observe: an uploaded package works from the store either way, and
+ * an unpacked one needs the key. Replacing the field rather than deleting it is not an option — the
+ * store rejects its presence, not its value.
+ *
+ * @param {ZipEntry[]} entries
+ * @returns {ZipEntry[]} the same entries, with `key` absent from the root manifest
+ */
+export function storeSafeEntries(entries) {
+  return entries.map((entry) => {
+    if (entry.name !== "manifest.json") return entry;
+    const manifest = JSON.parse(entry.content.toString("utf8"));
+    // Left byte-identical when there is nothing to remove, so the archive stays stable for a
+    // manifest that never pinned a key.
+    if (!("key" in manifest)) return entry;
+    delete manifest.key;
+    return { name: entry.name, content: Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`) };
+  });
 }
 
 /** Build a ZIP archive (method 8, deflate) from `entries`. Deterministic for a fixed `when`. */

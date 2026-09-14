@@ -15,7 +15,7 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { collectFiles, createZip } from "./zip.js";
+import { collectFiles, createZip, storeSafeEntries } from "./zip.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dist = path.join(root, "dist");
@@ -30,7 +30,10 @@ const out = path.join(root, `hipcortex-chrome-extension-v${version}.zip`);
 
 rmSync(out, { force: true });
 
-const entries = collectFiles(dist);
+// `key` pins the ID of the extension loaded from `dist/`, which is what the native host's
+// `allowed_origins` names, so `dist/` keeps it. The store refuses the package when it is present, and
+// the field is meaningless to a store-published item because the store assigns that ID itself.
+const entries = storeSafeEntries(collectFiles(dist));
 
 // The invariant is checked rather than trusted: a backslash in an entry name is the specific defect
 // this script was rewritten to remove, and it must fail here rather than on the store's side.
@@ -41,6 +44,14 @@ if (offenders.length > 0) {
 }
 if (!entries.some((entry) => entry.name === "manifest.json")) {
   console.error("[package] manifest.json is not at the archive root; the store rejects that layout");
+  process.exit(1);
+}
+
+// Checked for the same reason, and because the failure it prevents is a message from the store's
+// validator rather than a broken extension: the upload is simply refused, with no local symptom.
+const archived = entries.find((entry) => entry.name === "manifest.json");
+if ("key" in JSON.parse(archived.content.toString("utf8"))) {
+  console.error("[package] the archived manifest still carries `key`; the store rejects the package");
   process.exit(1);
 }
 

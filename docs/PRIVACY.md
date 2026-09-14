@@ -2,8 +2,8 @@
 
 **Last updated: 2026-09-14.**
 
-This policy covers the **HipCortex Memory** browser extension (item ID
-`eklnpdcephecmddelagbablmeajoogkf`). It does not cover the HipCortex runtime, which is a separate
+This policy covers the **HipCortex Memory** browser extension, whether it was installed from the
+Chrome Web Store or loaded from source. It does not cover the HipCortex runtime, which is a separate
 program the user installs and runs on their own computer.
 
 The short version: **the extension sends your conversations to your own computer and to nothing

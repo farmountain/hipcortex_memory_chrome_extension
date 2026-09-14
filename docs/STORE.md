@@ -8,10 +8,22 @@ Uploading is a manual step performed in the
 [Developer Dashboard](https://chrome.google.com/webstore/devconsole). Nothing in this repository
 uploads anything, and nothing should be written here that claims otherwise.
 
-The publisher account is `742d17eb-82ee-46a9-9f3d-5cf0eee38065`. The item's extension ID is
-**`eklnpdcephecmddelagbablmeajoogkf`**, fixed by the `key` in `public/manifest.json`. Those two
-identifiers are different things: the publisher ID belongs to the account and never appears in the
-package, the extension ID belongs to the item and is pinned in the package.
+The publisher account is `742d17eb-82ee-46a9-9f3d-5cf0eee38065`. That identifier belongs to the
+account and never appears in the package; the item's extension ID belongs to the item and cannot be
+set by the package at all.
+
+**The item's extension ID is not the ID the local build uses, and the package must not try to set
+it.** `public/manifest.json` pins a `key` so that the extension loaded from `dist/` has a stable ID —
+`eklnpdcephecmddelagbablmeajoogkf` — because the native messaging host has to name that ID in
+`allowed_origins` before the extension has ever been loaded. The store works the other way round: it
+**refuses the whole package** when the manifest carries a `key` (*"key field is not allowed in
+manifest"*) and derives the item's ID from a public key it generates and holds. So `npm run package`
+removes the field from the **archived copy only**; `dist/manifest.json` keeps it, and
+`tests/host/registration.spec.ts` asserts that it must.
+
+**§11 is the step that reconciles the two, and skipping it breaks the native host for everyone who
+installed from the store.** It is the one part of this submission that changes an identifier the
+repository already asserts.
 
 ## 1. The artifact to upload
 
@@ -19,28 +31,29 @@ package, the extension ID belongs to the item and is pinned in the package.
 |---|---|
 | File | `hipcortex-chrome-extension-v0.1.0.zip` |
 | Built by | `npm run package` |
-| Size | 230,078 bytes |
+| Size | 229,710 bytes |
 | Entries | 168 |
-| SHA-256, built in this tree | `6CC9DEDB9ED756ACC7CCEC3F4B365934F2EF2FCFEAEC997F29073B76929D1D2A` |
-| SHA-256, the `v0.1.0` release asset | `3CC6F6EB0AD98E6481155EB61B9F3BA067CCDA0E1139DA49DA84E915B7AA4A4A` |
-| `manifest.json` | at the archive root, byte-identical to `public/manifest.json` |
+| SHA-256 | `17517255734729D0D5C3FF36CBA2D2940159CAD3A98E64E0C2B2DBA6CE5AC903` |
+| `manifest.json` | at the archive root, and **not** byte-identical to `public/manifest.json`: the archived copy has no `key`, because the store refuses any package that carries one (§11) |
 
-`npm run package` refuses to write an archive whose entry names contain a backslash, or whose
-`manifest.json` is not at the root, because a Windows-built archive with `\` separators is not
-ZIP-valid and shipped once already.
+`npm run package` refuses to write an archive whose entry names contain a backslash, whose
+`manifest.json` is not at the root, or whose archived manifest still carries `key`, because each of
+those is a package the store rejects — and the backslash one shipped once already, in a Windows-built
+archive that was not ZIP-valid.
 
-**Those two hashes differ, and the two archives hold the same contents.** The in-repo writer stamps
-every entry with the time it was built, so a rebuild is never byte-identical and comparing whole-file
-hashes cannot answer the question that matters — whether the published asset is current. Comparing
-entries can, and it was done: 168 entries on both sides, no name present in one and absent from the
-other, **zero** uncompressed-size differences, **zero** CRC-32 differences. Upload either file. If
-you rebuild, hash the file you actually upload rather than trusting either row.
+**The release asset is this tree's own output, byte for byte.** The file `npm run package` wrote was
+uploaded to the `v0.1.0` release, and then downloaded back and compared: same size, same SHA-256, 168
+entries on both sides, no `key` in either manifest. An earlier asset on that release was built before
+the field was stripped and is the archive the store refused; it has been replaced. The in-repo writer
+stamps every entry with the time it was built, so a rebuild is never byte-identical to a previous
+one — if you rebuild, upload that file and hash the file you uploaded rather than trusting this
+table.
 
 Properties verified against the built archive with an independent ZIP implementation
 (`System.IO.Compression`), not with the writer that produced it:
 
 ```
-entries=168 backslash=0 fwdslash=148 rootManifest=1 nestedManifest=0
+entries=168 backslash=0 fwdslash=148 rootManifest=1 nestedManifest=0 hasKey=0
 icons/icon16.png  89 bytes   -> 16x16
 icons/icon32.png  114 bytes  -> 32x32
 icons/icon48.png  134 bytes  -> 48x48
@@ -290,3 +303,39 @@ match the extension.
 - **That a submission would be approved.** These are the inputs; approval is a reviewer's decision.
 - **That the declarations in §4–§6 have been made.** They are drafted to be pasted, under the
   publisher account, by the person who owns that account.
+
+## 11. After the first upload — make the extension ID the store's
+
+This is not optional, and it is the only part of the submission that changes a number the repository
+already asserts.
+
+**Why the two IDs differ.** An extension loaded from `dist/` is identified either by the `key` in its
+manifest or, with no key, by a hash of the folder it was loaded from. The native messaging host has
+to name that ID in `allowed_origins` *before* the extension has ever been loaded, so the manifest
+pins a `key` and `scripts/install-host.mjs` derives the ID from it. The store is the reverse: it
+refuses a package whose manifest carries a `key`, and it derives the item's ID from a public key it
+generates and holds. So the store item will **not** be `eklnpdcephecmddelagbablmeajoogkf`.
+
+**What to do, in order.**
+
+1. Upload the archive from §1. Its manifest carries no `key`, which is what the validator requires.
+2. In the Developer Dashboard, open the item, go to the **Package** tab and click **View public key**.
+3. Copy the text between `-----BEGIN PUBLIC KEY-----` and `-----END PUBLIC KEY-----`, and remove the
+   newlines so that it is one line.
+4. Replace the `key` value in `public/manifest.json` with it. No other field changes.
+5. `npm run build`, then `npm run install:host` — that second command is what puts the store ID into
+   `allowed_origins` — then reload the extension from `dist/`.
+6. Check that the two agree: the ID on `chrome://extensions` must equal the **Item ID** the dashboard
+   shows. That comparison is Chrome's own documented check, and it is the one that matters.
+
+**What goes wrong if it is skipped.** The store build and the local build keep different IDs. Someone
+who installed from the store, then runs `npm run install:host` from this repository, gets a host
+manifest whose `allowed_origins` names `chrome-extension://eklnpdcephecmddelagbablmeajoogkf/`, which
+is not the extension they have. Chrome refuses the connection to the native host, and the error it
+reports names neither the key nor the ID nor this document.
+
+**Why not simply drop the field.** Without a `key`, an unpacked extension's ID is a hash of the folder
+it was loaded from, so it would differ per checkout and per machine, and
+`deriveExtensionId` returns `null` for a manifest that pins nothing — `npm run install:host` could
+not compute an ID at all. Keeping the field and replacing its value after the first upload leaves the
+unpacked build stable *and* answering to the same ID as the store item.

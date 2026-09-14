@@ -51,15 +51,19 @@ Load unpacked → select `dist/`. This is the only install path that works today
 > as `hipcortex-chrome-extension-v0.1.0.zip`, and the store description in `public/manifest.json`
 > is within the 132-character limit. Uploading it is a manual step a maintainer performs; until
 > that happens there is no listing to install from, and this section will not pretend otherwise.
-> The ID below is what the listing will carry, and it is already fixed.
+> The ID the local build uses is **not** the ID the listing will carry: the store assigns its own item
+> ID and refuses the `key` field that pins the local one. §11 of that document is the step that
+> reconciles the two, and skipping it breaks the native host for store-installed users.
 >
 > Everything the submission form asks for — the archive, the paste-ready listing copy, the
 > per-permission justifications, the reviewer instructions, and an explicit list of what is still
 > missing — is in [docs/STORE.md](./docs/STORE.md). The privacy policy is
 > [docs/PRIVACY.md](./docs/PRIVACY.md).
 
-**The extension ID is `eklnpdcephecmddelagbablmeajoogkf`** — fixed from the start, because
-`public/manifest.json` pins a `key`. On first run the extension reports which of the two transport
+**Loaded from source, the extension ID is `eklnpdcephecmddelagbablmeajoogkf`**, because
+`public/manifest.json` pins a `key`. That is the ID of the unpacked build; the published item gets its
+own ID, assigned by the store, which refuses a package containing the `key` at all — see
+[docs/STORE.md §11](./docs/STORE.md). On first run the extension reports which of the two transport
 modes it is in and what that mode needs.
 
 The account that will publish it is the Chrome Web Store publisher
@@ -165,12 +169,18 @@ actually took, run `node scripts/probe-installed-host.mjs`: it reads the registr
 the installed program the way Chrome does, and sends a side-effect-free health frame — it writes
 nothing to your memory store.
 
-The extension ID is fixed at **`eklnpdcephecmddelagbablmeajoogkf`** because `public/manifest.json`
-pins a `key`. It is not a preference: an unpacked extension's ID is otherwise derived from its path,
-so it cannot be known before the first load, which would make it impossible to register the host
-before loading the extension — the order the install instructions above depend on. Because the ID is
-pinned, `chrome://extensions` shows the same one wherever the folder lives and across reloads, and
-the host's `allowed_origins` is a value this repository determines rather than one it discovers.
+An unpacked extension's ID is otherwise derived from its path, so it cannot be known before the first
+load, which would make it impossible to register the host before loading the extension — the order the
+install instructions above depend on. `public/manifest.json` therefore pins a `key`, and the ID of the
+unpacked build is **`eklnpdcephecmddelagbablmeajoogkf`**. Because it is pinned,
+`chrome://extensions` shows the same ID wherever the folder lives and across reloads, and the host's
+`allowed_origins` is a value this repository determines rather than one it discovers.
+
+That key must **not** be in the archive uploaded to the store, which rejects the whole package for
+carrying it, and the store assigns the published item its own ID. The two are reconciled by replacing
+the `key` with the store's public key after the first upload, which makes the unpacked build answer to
+the store item's ID and keeps `allowed_origins` correct for store-installed users. The procedure, and
+what breaks if it is skipped, is [docs/STORE.md §11](./docs/STORE.md).
 
 `dist/` is built output and is **not** committed. Committing it used to let a stale build mask a
 broken one, so `npm run build` before claiming a change works is a rule, not a suggestion.
