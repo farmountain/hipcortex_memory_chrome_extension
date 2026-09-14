@@ -76,6 +76,17 @@ describe("store submission package", () => {
     expect(STORE_DOC).toContain(`\`\`\`\n${manifest.description}\n\`\`\``);
   });
 
+  it("keeps the short description inside the 132-character limit the dashboard enforces", () => {
+    // The field is package metadata, and the dashboard refuses to edit it after upload, so a
+    // description over the limit is an item that cannot be submitted and cannot be repaired
+    // without a version bump. The count the document states is checked too: a stated count that
+    // has drifted from the manifest is the same defect as the description having drifted.
+    expect(manifest.description).toBeTruthy();
+    const description = manifest.description ?? "";
+    expect(description.length).toBeLessThanOrEqual(132);
+    expect(STORE_DOC).toContain(`${description.length} characters against a limit of 132`);
+  });
+
   it("names the manifest version in the archive filename", () => {
     expect(manifest.version).toBeTruthy();
     expect(STORE_DOC).toContain(`hipcortex-chrome-extension-v${manifest.version}.zip`);

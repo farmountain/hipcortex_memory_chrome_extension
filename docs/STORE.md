@@ -31,9 +31,9 @@ repository already asserts.
 |---|---|
 | File | `hipcortex-chrome-extension-v0.1.0.zip` |
 | Built by | `npm run package` |
-| Size | 229,710 bytes |
+| Size | 229,722 bytes |
 | Entries | 168 |
-| SHA-256 | `17517255734729D0D5C3FF36CBA2D2940159CAD3A98E64E0C2B2DBA6CE5AC903` |
+| SHA-256 | `9D103409DE4C25AFA58C5984CC6B728B1DAE6EC994B8F9E79FD6AC4A2AF83639` |
 | `manifest.json` | at the archive root, and **not** byte-identical to `public/manifest.json`: the archived copy has no `key`, because the store refuses any package that carries one (§11) |
 
 `npm run package` refuses to write an archive whose entry names contain a backslash, whose
@@ -97,46 +97,58 @@ HipCortex Memory
 ### Short description
 
 This is the manifest's `description`, and it must stay byte-identical to it — the dashboard will not
-let you edit package metadata after upload, so a divergence here means a version bump.
+let you edit package metadata after upload, so a divergence here means a version bump. It is also
+what a search result shows first, which is why it opens with the problem rather than the mechanism.
 
 ```
-Capture your ChatGPT, Claude, Grok, Gemini and DeepSeek conversations into a local-first HipCortex memory. No cloud.
+Stop losing your AI conversations. Capture ChatGPT, Claude, Grok, Gemini and DeepSeek into a memory you own, on your own machine.
 ```
 
-116 characters against a limit of 132.
+129 characters against a limit of 132. Three characters of headroom is deliberate: the field cannot
+be edited in the dashboard, and a version bump is the only way to change it afterwards.
 
 ### Detailed description
 
 ```
-HipCortex Memory captures the AI conversations you have in the browser and delivers them to a HipCortex runtime running on your own computer.
+Your best thinking happens in a chat window - and then it scrolls away. Across five of them, in fact: ChatGPT, Claude, Grok, Gemini and DeepSeek, each holding a piece of it.
+
+HipCortex Memory captures the AI conversations you have in the browser and delivers them to a HipCortex runtime running on your own computer. Not to a service, not to an account, not to a copy on someone else's server: to a memory you own, on the machine in front of you.
 
 It is a capture tool, not an assistant. It reads the conversation, normalises it into a provider-agnostic record, and hands it to your runtime. Everything that makes sense of that memory - consolidation, retrieval, ranking - is the runtime's job, on your machine.
+
+WHAT YOU GET
+
+- Nothing you worked out with an AI disappears into a scrollback. On a supported site the extension reads the conversation's turns and captures them as you go.
+- A memory that outlives the tab. What you captured today is still there, searchable, on your disk, months later.
+- Search that answers even when your runtime is stopped. Results come from a local index of what has already been captured, so a stopped server is not a blank screen.
+- Capture you can audit instead of trusting. The popup shows whether capture is on, how many captures are queued, how many your runtime has not yet acknowledged, and a clearly marked paused state if the queue reaches its storage ceiling.
+- Nothing dropped behind your back. A capture your runtime has not acknowledged is never discarded - the queue pauses and reports instead. There is no loss counter, because there is no loss.
+- Take your data with you. Undelivered captures can be exported to a file at any time.
+- Bring existing memory in. An existing HipCortex export can be imported, one record at a time, with a recorded id remap so an id from before the import still resolves afterwards.
+- Quick add, and a side panel where the work happens. Right-click a selection or a page and choose "Add to HipCortex", or press Ctrl+Shift+M (Cmd+Shift+M on macOS). Search and capture beside the page at Ctrl+Shift+H.
+- Two ways to reach your runtime. Native messaging to the HipCortex Desktop app, or HTTP to a server you started yourself on http://127.0.0.1:3030.
 
 WHERE YOUR CONVERSATIONS GO
 
 Nowhere, unless you say so. The extension ships with no remote host authorised: its only declared network destinations are 127.0.0.1 and localhost. Saving a runtime address that is not on your machine requires a confirmation dialog that names the exact host and says what will be sent there, and a banner stays on screen for as long as that address is in effect.
 
-WHAT IT DOES
-
-- Passive capture. On a supported site the extension reads the conversation's turns and captures them as you go.
-- Quick add. Right-click a selection or a page and choose "Add to HipCortex", or press Ctrl+Shift+M (Cmd+Shift+M on macOS).
-- Side panel. Search and capture beside the page, at Ctrl+Shift+H.
-- Search. Filter captured conversations by the provider they came from. Served from a local index, so it still answers while your runtime is stopped.
-- Capture status you can audit. The popup shows whether capture is on, how many captures are queued, how many your runtime has not yet acknowledged, and a clearly marked paused state if the queue reaches its storage ceiling.
-- Export. Undelivered captures can be exported to a file at any time.
-- Import. Bring an existing HipCortex export in, one record at a time, with a recorded id remap so an id from before the import still resolves afterwards.
-- Two transports. Native messaging to the HipCortex Desktop app, or HTTP to a server you started yourself on http://127.0.0.1:3030.
+There is no HipCortex-hosted service for it to send anything to. It collects no analytics and no telemetry.
 
 WHAT IT DOES NOT DO
 
-It does not summarise, rank, embed or infer anything from your conversations, and it keeps no memory of its own.
-It never discards a capture that your runtime has not acknowledged.
-It does not send anything to a HipCortex-hosted service, and there is no HipCortex-hosted service.
-It collects no analytics and no telemetry.
+It does not summarise, rank, embed or infer anything from your conversations, and it keeps no memory of its own. It never discards a capture that your runtime has not acknowledged.
 
 REQUIREMENTS
 
-A HipCortex runtime on your own machine: the HipCortex Desktop app, which registers the native messaging host, or a HipCortex server you started on http://127.0.0.1:3030. Without one, the extension reports that the runtime is unreachable and holds your captures in its queue rather than losing them.
+A HipCortex runtime on your own machine: the HipCortex Desktop app, which registers the native messaging host, or a HipCortex server you started on http://127.0.0.1:3030. Without one, the extension reports that the runtime is unreachable and holds your captures in its queue rather than losing them - so nothing is at stake in the order you set things up in.
+
+GET STARTED
+
+1. Add HipCortex Memory to Chrome. It needs no account and asks for no sign-in.
+2. Give it somewhere to deliver to: install the HipCortex Desktop app, or start a HipCortex server on http://127.0.0.1:3030.
+3. Open a conversation on ChatGPT, Claude, Gemini, Grok or DeepSeek and watch the capture count in the popup - or press Ctrl+Shift+M to add the page you are reading right now.
+
+Your conversations are already being written, by you, in five different places. This is the part that makes them yours.
 ```
 
 ### Category and language
