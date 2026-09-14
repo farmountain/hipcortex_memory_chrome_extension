@@ -475,7 +475,8 @@
       "evidence": [
         "$ entry-name scan of the released zip -> 148 of 168 names contained a backslash and 0 contained a forward slash",
         "$ node scripts/package.js then the same scan -> 148 forward slashes, 0 backslashes, manifest.json at the root",
-        "$ npm test -> tests/quality/zip.spec.ts pins the separator, the root manifest.json and the recoverable bytes"
+        "$ npm test -> tests/quality/zip.spec.ts pins the separator, the root manifest.json and the recoverable bytes",
+        "$ gh release download v0.1.0 and a sha256 of the asset -> 3CC6F6EB at 230078 bytes, byte for byte the rebuilt archive"
       ],
       "resolution": "Not conformant, and nothing reached it. APPNOTE 4.4.17.1 names the forward slash as the entry separator; Compress-Archive on Windows PowerShell 5.1 writes backslashes, and the extension loads from dist/ either way, so no loadability test could observe it. The archive is now written by scripts/zip.js, which has no platform leg, and the script refuses to emit a backslash name or an archive whose manifest is not at the root.",
       "doesNotEstablish": "That the store rejects a backslash archive - the defect was removed before uploading, so the tolerance of the pipeline is untested. It also says nothing about the policy review the archive must still pass."
