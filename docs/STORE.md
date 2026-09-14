@@ -118,14 +118,16 @@ It is a capture tool, not an assistant. It reads the conversation, normalises it
 
 WHAT YOU GET
 
-- Nothing you worked out with an AI disappears into a scrollback. On a supported site the extension reads the conversation's turns and captures them as you go.
+- Nothing you worked out with an AI disappears into a scrollback. Switch on Auto-capture and the extension reads a conversation's turns as they appear and keeps them, without you copying anything.
+- Capture is off until you switch it on. The setting ships disabled and the passive path is inert while it is off; a manual capture still works, and the queue still drains, so a setting changed mid-flight cannot strand something already accepted.
 - A memory that outlives the tab. What you captured today is still there, searchable, on your disk, months later.
 - Search that answers even when your runtime is stopped. Results come from a local index of what has already been captured, so a stopped server is not a blank screen.
 - Capture you can audit instead of trusting. The popup shows whether capture is on, how many captures are queued, how many your runtime has not yet acknowledged, and a clearly marked paused state if the queue reaches its storage ceiling.
 - Nothing dropped behind your back. A capture your runtime has not acknowledged is never discarded - the queue pauses and reports instead. There is no loss counter, because there is no loss.
 - Take your data with you. Undelivered captures can be exported to a file at any time.
 - Bring existing memory in. An existing HipCortex export can be imported, one record at a time, with a recorded id remap so an id from before the import still resolves afterwards.
-- Quick add, and a side panel where the work happens. Right-click a selection or a page and choose "Add to HipCortex", or press Ctrl+Shift+M (Cmd+Shift+M on macOS). Search and capture beside the page at Ctrl+Shift+H.
+- Quick add, and a side panel where the work happens. Right-click a selection and choose "Add selection to HipCortex", or right-click the page and choose "Add page to HipCortex". Keyboard: Ctrl+Shift+M (Command+Shift+M on macOS) adds the current selection, and Ctrl+Shift+H (Command+Shift+H on macOS) opens the side panel, which searches and captures beside the page you are already reading.
+- Jump straight to what you wrote before. Right-click a selection and choose "Search HipCortex for selection" to look it up in what has already been captured.
 - Two ways to reach your runtime. Native messaging to the HipCortex Desktop app, or HTTP to a server you started yourself on http://127.0.0.1:3030.
 
 WHERE YOUR CONVERSATIONS GO
@@ -140,13 +142,14 @@ It does not summarise, rank, embed or infer anything from your conversations, an
 
 REQUIREMENTS
 
-A HipCortex runtime on your own machine: the HipCortex Desktop app, which registers the native messaging host, or a HipCortex server you started on http://127.0.0.1:3030. Without one, the extension reports that the runtime is unreachable and holds your captures in its queue rather than losing them - so nothing is at stake in the order you set things up in.
+A HipCortex runtime on your own machine: the HipCortex Desktop app, which registers the native messaging host, or a HipCortex server you started on http://127.0.0.1:3030. Without one the extension is inert by design - it reports that the runtime is unreachable and holds your captures in its queue rather than losing them.
 
 GET STARTED
 
-1. Add HipCortex Memory to Chrome. It needs no account and asks for no sign-in.
-2. Give it somewhere to deliver to: install the HipCortex Desktop app, or start a HipCortex server on http://127.0.0.1:3030.
-3. Open a conversation on ChatGPT, Claude, Gemini, Grok or DeepSeek and watch the capture count in the popup - or press Ctrl+Shift+M to add the page you are reading right now.
+1. Add HipCortex Memory to Chrome. It needs no account and asks for no sign-in. The install prompt names the five AI sites and asks for no host beyond them.
+2. Capture something straight away: right-click the page and choose "Add page to HipCortex", or select some text and press Ctrl+Shift+M. Quick add needs no setting found first.
+3. To have conversations kept as they happen, open Settings from the popup and switch on "Auto-capture page visits". From then on, opening a conversation on ChatGPT, Claude, Gemini, Grok or DeepSeek is enough - the popup's capture count is the running total.
+4. Give it somewhere to deliver to: install the HipCortex Desktop app, or start a HipCortex server on http://127.0.0.1:3030. Until you do, the popup reports that the runtime is unreachable and holds everything you captured in the queue - nothing is at stake in the order you do these in.
 
 Your conversations are already being written, by you, in five different places. This is the part that makes them yours.
 ```

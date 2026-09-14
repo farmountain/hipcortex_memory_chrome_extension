@@ -48,8 +48,17 @@ Load unpacked → select `dist/`. This is the only install path that works today
 
 > **Chrome Web Store — not yet listed.** The submission archive is built and attached to the
 > [`v0.1.0` release](https://github.com/farmountain/hipcortex_memory_chrome_extension/releases/tag/v0.1.0)
-> as `hipcortex-chrome-extension-v0.1.0.zip`, and the store description in `public/manifest.json`
-> is within the 132-character limit. Uploading it is a manual step a maintainer performs; until
+> as `hipcortex-chrome-extension-v0.1.0.zip`. The listing's short description is the manifest's
+> `description`, and it reads:
+>
+> > **Stop losing your AI conversations.** Capture ChatGPT, Claude, Grok, Gemini and DeepSeek into a
+> > memory you own, on your own machine.
+>
+> That is 129 characters against the store's 132-character limit, and it is the field the dashboard
+> makes read-only after the first upload — so it was settled before submission rather than after.
+> The full listing copy is in [docs/STORE.md](./docs/STORE.md) §3.
+>
+> Uploading the archive is a manual step a maintainer performs; until
 > that happens there is no listing to install from, and this section will not pretend otherwise.
 > The ID the local build uses is **not** the ID the listing will carry: the store assigns its own item
 > ID and refuses the `key` field that pins the local one. §11 of that document is the step that
