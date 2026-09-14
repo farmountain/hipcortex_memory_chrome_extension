@@ -31,10 +31,15 @@ copies `public/*` and generates icons. There is no webpack/vite step.
 - **No remote code** — `eval`, `new Function`, remote `<script src>`, and remotely hosted WASM
   are prohibited by store policy and by this project.
 - **No `<all_urls>`** — add narrow hosts. `host_permissions` currently lists localhost
-  endpoints; AI sites belong in `optional_host_permissions` and are requested at runtime.
+  endpoints only, and `optional_host_permissions` lists the six provider origins that `G1.9`
+  requires to be declared. Nothing requests those optional hosts at runtime: `chrome.permissions.request`
+  has no call site in this repository, and capture into those sites is granted by
+  `content_scripts.matches`, which is what the install-time warning names.
   Permissions are least-privilege and changes here are reviewed as a security change.
-- **Content scripts must be declared or injected** — `content_scripts` is currently `[]`.
-  Adding a script means updating `public/manifest.json` *and* the file is served from `dist/`.
+- **Content scripts are declared, not injected** — `content_scripts` has one entry carrying the six
+  provider origins, and its bundle is the single `dist/content.js` built by
+  `scripts/build-content.js`. Changing it means updating `public/manifest.json` *and* keeping that
+  one entry point; a second bundled entry is out of scope.
 - **`chrome.sidePanel.open()` requires a user gesture** — call it from a click/command
   handler, not from a background timer.
 - **`chrome.storage.sync` has small quotas** — bulk/captured data belongs in

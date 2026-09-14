@@ -41,6 +41,16 @@ disk, fails `npm run test:traceability` (`G6.8`).
 | "Add memory from the popup → appears in subsequent search" as an MVP acceptance criterion | Too weak to be worth verifying: it is satisfied by a device-local store. Retention is the core's job; this repository's obligation is *acknowledged delivery*, which is both stronger and testable (`G2.1`, `G2.9`). |
 | "Tolerate multiple historical endpoint paths" as a resilience feature | Same entry as above: resilience in this codebase means the queue retains until acknowledged, not that the client guesses at endpoints. |
 
+## Submission documents
+
+| Document | Owns |
+|----------|------|
+| [`docs/STORE.md`](./STORE.md) | The Chrome Web Store submission: the archive to upload, the paste-ready listing copy, the permission justifications, the reviewer instructions, and an explicit list of what is still missing |
+| [`docs/PRIVACY.md`](./PRIVACY.md) | The privacy policy the store requires once personal communications are declared. It is a user-facing surface, so its claims are checked like any other assertion |
+
+Uploading is a manual step in the Developer Dashboard. Nothing in this repository uploads anything,
+and `docs/STORE.md` opens by saying so.
+
 ## Still open
 
 Nothing here. Runtime questions that remain unprobed are listed in

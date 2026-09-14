@@ -9,7 +9,7 @@
   "stages": [
     { "stage": "goals", "entries": ["Q1", "Q14"] },
     { "stage": "acceptance-criteria", "entries": ["Q2", "Q15", "Q19"] },
-    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24"] },
+    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24", "Q25"] },
     { "stage": "unknowns", "entries": ["Q4", "Q5", "Q11", "Q20", "Q21"] },
     { "stage": "planning", "entries": ["Q6", "Q9", "Q18"] },
     { "stage": "react-iterations", "entries": ["Q7", "Q8", "Q10", "Q16", "Q17"] }
@@ -476,7 +476,8 @@
         "$ entry-name scan of the released zip -> 148 of 168 names contained a backslash and 0 contained a forward slash",
         "$ node scripts/package.js then the same scan -> 148 forward slashes, 0 backslashes, manifest.json at the root",
         "$ npm test -> tests/quality/zip.spec.ts pins the separator, the root manifest.json and the recoverable bytes",
-        "$ gh release download v0.1.0 and a sha256 of the asset -> 3CC6F6EB at 230078 bytes, byte for byte the rebuilt archive"
+        "$ gh release download v0.1.0 then an entry-level comparison against a fresh build -> 168 entries on both sides, 0 size differences, 0 CRC-32 differences",
+        "$ sha256 of the two files -> 3CC6F6EB for the download and 6CC9DEDB for the fresh build, which differ because the writer stamps every entry with its build time"
       ],
       "resolution": "Not conformant, and nothing reached it. APPNOTE 4.4.17.1 names the forward slash as the entry separator; Compress-Archive on Windows PowerShell 5.1 writes backslashes, and the extension loads from dist/ either way, so no loadability test could observe it. The archive is now written by scripts/zip.js, which has no platform leg, and the script refuses to emit a backslash name or an archive whose manifest is not at the root.",
       "doesNotEstablish": "That the store rejects a backslash archive - the defect was removed before uploading, so the tolerance of the pipeline is untested. It also says nothing about the policy review the archive must still pass."
@@ -500,6 +501,28 @@
       ],
       "resolution": "Not real images. The build wrote a 1x1 stub to every filename, which satisfies the manifest's path check and fails the store's icon requirement, so the package could not be submitted at all. The icons are now committed artwork in public/icons/, copied to dist/icons/ by the same asset step as every other file, at 16, 32, 48 and 128 pixels, and each one's dimensions are asserted from its own IHDR chunk.",
       "doesNotEstablish": "That the artwork is a brand asset - the four files are geometric placeholders with transparent padding and must be replaced before the listing goes public. It also does not establish that the store accepts their alpha and framing."
+    },
+    {
+      "id": "Q25",
+      "stage": "validation-planning",
+      "critical": false,
+      "question": "The manifest declares six optional provider hosts. Does anything ever request them at runtime, and is that a defect?",
+      "state": "self-resolved",
+      "attempts": 1,
+      "artifactsTried": [
+        "public/manifest.json - optional_host_permissions names the six provider origins; host_permissions names only 127.0.0.1 and localhost",
+        "src/** - a search for the permissions API found no call site",
+        "docs/END-STATE.md - G1.9 requires the declaration to name every canonical host",
+        ".github/instructions/mv3-extension.instructions.md - stated that the hosts are requested at runtime"
+      ],
+      "evidence": [
+        "$ git grep chrome.permissions over src/ -> no match, so no runtime request exists anywhere in the shipped code",
+        "$ git grep permissions.request over src/ -> no match",
+        "$ npm test -> tests/quality/manifest.spec.ts passes with the six hosts declared, which is the test G1.9 names",
+        "$ npm run verify after correcting the instruction file and writing the store runbook -> 55 test files passed"
+      ],
+      "resolution": "Nothing requests them, and that is not a defect. Capture on those origins is granted at install time by content_scripts.matches, not by a runtime permission request, so the optional declaration is inert. It stays because G1.9 requires it and manifest.spec.ts fails without it. The instruction file was wrong to describe a runtime request and has been corrected; the store runbook now answers the question before a reviewer asks it.",
+      "doesNotEstablish": "That the store accepts an optional declaration nothing calls - the package has not been uploaded, so the review outcome is untested. It also does not establish that capture works on any provider page; that is the browser gate 8.12, which no test in this repository can reach."
     }
   ]
 }

@@ -52,10 +52,21 @@ Load unpacked → select `dist/`. This is the only install path that works today
 > is within the 132-character limit. Uploading it is a manual step a maintainer performs; until
 > that happens there is no listing to install from, and this section will not pretend otherwise.
 > The ID below is what the listing will carry, and it is already fixed.
+>
+> Everything the submission form asks for — the archive, the paste-ready listing copy, the
+> per-permission justifications, the reviewer instructions, and an explicit list of what is still
+> missing — is in [docs/STORE.md](./docs/STORE.md). The privacy policy is
+> [docs/PRIVACY.md](./docs/PRIVACY.md).
 
 **The extension ID is `eklnpdcephecmddelagbablmeajoogkf`** — fixed from the start, because
 `public/manifest.json` pins a `key`. On first run the extension reports which of the two transport
 modes it is in and what that mode needs.
+
+The account that will publish it is the Chrome Web Store publisher
+`742d17eb-82ee-46a9-9f3d-5cf0eee38065`. A publisher ID is account-level — it identifies the
+developer account that owns the item, not the item — so it has no manifest field, appears nowhere in
+the package, and is not the extension ID above. Google support asks for it; nothing in this
+repository consumes it.
 
 Either way, Consumer Mode needs the native messaging host registered before capture can reach
 desktop. The extension cannot do that itself — no extension API can write a registry key — so it
