@@ -9,8 +9,8 @@
   "stages": [
     { "stage": "goals", "entries": ["Q1", "Q14"] },
     { "stage": "acceptance-criteria", "entries": ["Q2", "Q15", "Q19"] },
-    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13"] },
-    { "stage": "unknowns", "entries": ["Q4", "Q5", "Q11", "Q20"] },
+    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22"] },
+    { "stage": "unknowns", "entries": ["Q4", "Q5", "Q11", "Q20", "Q21"] },
     { "stage": "planning", "entries": ["Q6", "Q9", "Q18"] },
     { "stage": "react-iterations", "entries": ["Q7", "Q8", "Q10", "Q16", "Q17"] }
   ],
@@ -418,6 +418,47 @@
       ],
       "resolution": "Verified for the three machine surfaces and left unverified for the browser, which is what the row now says. One capture delivered through this repository's own egress code was read back three ways with the same messages in the same order, so docs/END-STATE.md moved the row to verified for REST, CLI and MCP and G4.4 records the browser half as a manual gate rather than as delivered work.",
       "doesNotEstablish": "That a capture made by a real provider tab is retrievable this way - the capture was produced by the shipped egress code under Node. It also does not establish the VS Code surface, which lives in another repository and was not read."
+    },
+    {
+      "id": "Q21",
+      "stage": "unknowns",
+      "critical": true,
+      "question": "Every manifest, SDK and source constant in both repositories said 3.12.0 while the running server reported 3.11.0. Is a published channel mislabelled, or is the drift local to one machine?",
+      "state": "self-resolved",
+      "attempts": 1,
+      "artifactsTried": [
+        "docs/END-STATE.md and the channels registry -> record what each channel advertises, and no row records what an installed artifact actually reports",
+        "the core repository's phase 8 substrate test -> asserts EXPECTED_SERVER_VERSION equals VERSION, which reads a source constant and cannot see the binary a VSIX bundles",
+        "GET /health on the listener holding port 3030 -> version 3.11.0 while every manifest and source constant in both repositories said 3.12.0"
+      ],
+      "evidence": [
+        "$ gh release download v3.12.0 -> hipcortex-memory-3.12.0.vsix and hipcortex-windows-amd64.exe",
+        "$ sha256 of the server bundled in the published VSIX equals sha256 of the published standalone asset, CE158066 at 8732160 bytes -> the released VSIX ships the released server",
+        "$ PORT=3399 DATA_DIR=<scratch> hipcortex-windows-amd64.exe then GET /health -> status ok, version 3.12.0",
+        "$ sha256 of ~/.vscode/extensions/farmountain.hipcortex-memory-3.12.0/server/win32/hipcortex-windows-amd64.exe -> 2CB5CCC6 at 8642048 bytes, identical to the 3.11.0 folder copy, and the ASCII scan finds 3.11.0 in it and not 3.12.0"
+      ],
+      "resolution": "Published is correct and the drift is local. The released 3.12.0 VSIX and the released standalone binary both carry a server that answers 3.12.0, so EXPECTED_SERVER_VERSION is satisfiable and no channel is mislabelled. The one installation on this machine was a silent partial upgrade: the extension host and package.json reached 3.12.0 while the whole server payload stayed at 3.11.0, because the upgrade ran against a server that held its own executable open. The installed payload was replaced with the published 3.12.0 files at hash parity, without stopping the running process, so the listener keeps answering 3.11.0 until it is restarted.",
+      "doesNotEstablish": "That a VSIX install completes its server payload atomically - the failure mode is a file lock held by the process being upgraded, which no test in either repository exercises. It says nothing about the other installed versions of this extension, which were not examined, and it does not establish that a restart alone suffices on a machine where strictServerVersion is enabled."
+    },
+    {
+      "id": "Q22",
+      "stage": "validation-planning",
+      "critical": false,
+      "question": "Is a channel-alignment claim testable by comparing versions inside manifests, or does it need a probe of the artifact that is actually distributed?",
+      "state": "self-resolved",
+      "attempts": 1,
+      "artifactsTried": [
+        "package.json, public/manifest.json and src/types/index.ts -> three copies of one version number, checkable by string comparison alone",
+        "tests/quality/manifest.spec.ts -> reads the source manifest, so it can prove the repository agrees with itself and cannot see a packaged or installed artifact",
+        "the distributed VSIX and the running listener -> the only two surfaces that can disagree with every file in the repository"
+      ],
+      "evidence": [
+        "$ npm run verify -> 53 spec files and 823 tests, all of which read source, and none of which reads a release asset",
+        "$ hash-and-diff of the installed extension tree against the extracted published VSIX -> dist/extension.js byte-identical at 295768 bytes, package.json equal once the installer metadata is ignored, and six server payload files different",
+        "$ npm run test:clarity -> the gate reads this ledger, so the finding is recorded rather than asserted in prose"
+      ],
+      "resolution": "Manifest comparison is necessary and not sufficient. It proves the repository agrees with itself, which is what it did: every source surface said 3.12.0 while the installed artifact answered 3.11.0. A claim that a channel is aligned therefore needs one probe of the distributed artifact, which is what the evidence for Q21 performs, and this entry records that no existing gate reaches it.",
+      "doesNotEstablish": "That such a probe belongs in npm run verify - it needs a released artifact and a running listener, neither of which a unit gate may assume. It also does not establish a general check for the other distribution channels."
     }
   ]
 }
