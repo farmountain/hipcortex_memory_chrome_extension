@@ -637,7 +637,7 @@ Decisions made here without further consultation, each with the condition that w
    follow-up change (`cross-provider-search-index`) with a local index and its own retention rule,
    which must not become a second substrate.
 4. **The gates prove this repository's behaviour, not the product's behaviour in a browser.** As of
-   2026-09-14 the chain exits 0 — typecheck, lint, 53 files / 821 tests, build, and traceability at
+   2026-09-14 the chain exits 0 — typecheck, lint, 54 files / 832 tests, build, and traceability at
    67/67 criteria cited by 56 requirement headings — and the end-to-end round trip passed: 10
    captures retained while the core was absent, 10 delivered when it returned, the provider filter
    exclusive, and the throwaway actor deleted afterwards. Quoted output is in `tasks.md` groups 9

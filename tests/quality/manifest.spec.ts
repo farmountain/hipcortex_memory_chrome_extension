@@ -16,6 +16,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
+import { inflateSync } from "node:zlib";
 
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -158,6 +159,62 @@ describe("the build emits every file the package needs — G6.4 (task 9.2)", () 
       (reference) => !existsSync(path.join(DIST_DIR, path.basename(reference)))
     );
     expect(missing).toEqual([]);
+  });
+});
+
+describe("the packaged icons are the size they claim — task 9.2", () => {
+  /** The width, height and decoded RGBA scanlines of a PNG, read from its own chunks. */
+  function png(bytes: Buffer): { width: number; height: number; pixels: Buffer } {
+    const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    expect(bytes.subarray(0, 8).equals(signature)).toBe(true);
+    expect(bytes.subarray(12, 16).toString("latin1")).toBe("IHDR");
+
+    const data: Buffer[] = [];
+    let position = 8;
+    while (position + 8 <= bytes.length) {
+      const length = bytes.readUInt32BE(position);
+      const type = bytes.subarray(position + 4, position + 8).toString("latin1");
+      if (type === "IEND") break;
+      if (type === "IDAT") data.push(bytes.subarray(position + 8, position + 8 + length));
+      position += 12 + length;
+    }
+
+    const width = bytes.readUInt32BE(16);
+    const height = bytes.readUInt32BE(20);
+    // A PNG's IDAT is a zlib stream (RFC 1950), and every scanline the build writes uses filter
+    // type 0, so the inflated bytes are 1 + 4 per pixel.
+    return { width, height, pixels: inflateSync(Buffer.concat(data)) };
+  }
+
+  /** The RGBA of one pixel, given the raw filtered scanlines. */
+  function pixel(pixels: Buffer, width: number, x: number, y: number): number[] {
+    const start = y * (1 + width * 4) + 1 + x * 4;
+    return [...pixels.subarray(start, start + 4)];
+  }
+
+  it("writes each icon at the size the manifest's key declares", () => {
+    // The manifest's `icons` map only names files, so before this test a 1x1 transparent placeholder
+    // satisfied every other check in this file while the store submission would have been rejected.
+    const icons = Object.entries(manifest.icons ?? {});
+    expect(icons.length).toBeGreaterThanOrEqual(4);
+
+    for (const [declared, file] of icons) {
+      const size = Number(declared);
+      expect(Number.isInteger(size), `${declared} is not a pixel size`).toBe(true);
+      const image = png(readFileSync(path.join(DIST_DIR, file)));
+      expect([image.width, image.height], `${file} should be ${size}x${size}`).toEqual([size, size]);
+    }
+  });
+
+  it("ships a usable 128x128 icon, which the store requires inside the archive", () => {
+    // A 128x128 all-transparent PNG satisfies the dimension rule and is still unusable, so the
+    // artwork is decoded: transparent padding at the edge, opaque ink in the middle.
+    const image = png(readFileSync(path.join(DIST_DIR, "icons/icon128.png")));
+
+    expect([image.width, image.height]).toEqual([128, 128]);
+    expect(image.pixels.length).toBe(128 * (1 + 128 * 4));
+    expect(pixel(image.pixels, 128, 0, 0)[3]).toBe(0);
+    expect(pixel(image.pixels, 128, 64, 64)[3]).toBe(255);
   });
 });
 

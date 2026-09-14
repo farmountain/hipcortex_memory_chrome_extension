@@ -1,19 +1,21 @@
 /**
  * Package `dist/` into a store-uploadable zip (task 1.10).
  *
- * The old script was `cd dist && zip -r ...`, which needs both a POSIX shell and the `zip` binary.
- * This version uses `zip` on POSIX and PowerShell's `Compress-Archive` on Windows, and probes for
- * the tool before use so a missing binary produces a message naming it instead of an opaque
- * `ENOENT`.
- *
  * The archive root holds `manifest.json` directly — a zip that nests everything under `dist/`
  * installs as a broken extension, which is the failure this layout avoids.
+ *
+ * The zip is written here rather than shelled out to a packer, because the archive a person uploads
+ * has to be byte-conformant and a packer's behaviour is platform-dependent. `Compress-Archive` on
+ * Windows PowerShell 5.1 writes entry names with `\` separators, which the ZIP specification does
+ * not allow (APPNOTE 4.4.17.1 names `/` as the path separator) and which the previous version of
+ * this script shipped to the release page: 148 of 148 entries. Names are built with `/` here, from
+ * a relative path whose separator is normalised, so the archive is identical on every platform.
  */
 
-import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { collectFiles, createZip } from "./zip.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dist = path.join(root, "dist");
@@ -28,30 +30,21 @@ const out = path.join(root, `hipcortex-chrome-extension-v${version}.zip`);
 
 rmSync(out, { force: true });
 
-function exit(missingTool) {
-  console.error(`[package] required tool not found: ${missingTool}`);
+const entries = collectFiles(dist);
+
+// The invariant is checked rather than trusted: a backslash in an entry name is the specific defect
+// this script was rewritten to remove, and it must fail here rather than on the store's side.
+const offenders = entries.filter((entry) => entry.name.includes("\\"));
+if (offenders.length > 0) {
+  console.error(`[package] ${offenders.length} entry name(s) contain a backslash: ${offenders[0].name}`);
+  process.exit(1);
+}
+if (!entries.some((entry) => entry.name === "manifest.json")) {
+  console.error("[package] manifest.json is not at the archive root; the store rejects that layout");
   process.exit(1);
 }
 
-let result;
+writeFileSync(out, createZip(entries));
 
-if (process.platform === "win32") {
-  if (spawnSync("powershell", ["-NoProfile", "-Command", "exit 0"]).error) {
-    exit("powershell");
-  }
-  const command = `Compress-Archive -Path '${path.join(dist, "*")}' -DestinationPath '${out}' -Force`;
-  result = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", command], {
-    stdio: "inherit",
-  });
-} else {
-  if (spawnSync("zip", ["-v"], { stdio: "ignore" }).error) {
-    exit("zip");
-  }
-  result = spawnSync("zip", ["-r", out, "."], { cwd: dist, stdio: "inherit" });
-}
+console.log(`[package] wrote ${path.basename(out)} (${entries.length} entries)`);
 
-if (result.status !== 0) {
-  process.exit(result.status ?? 1);
-}
-
-console.log(`[package] wrote ${path.basename(out)}`);

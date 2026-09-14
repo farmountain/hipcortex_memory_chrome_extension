@@ -9,7 +9,7 @@
   "stages": [
     { "stage": "goals", "entries": ["Q1", "Q14"] },
     { "stage": "acceptance-criteria", "entries": ["Q2", "Q15", "Q19"] },
-    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22"] },
+    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24"] },
     { "stage": "unknowns", "entries": ["Q4", "Q5", "Q11", "Q20", "Q21"] },
     { "stage": "planning", "entries": ["Q6", "Q9", "Q18"] },
     { "stage": "react-iterations", "entries": ["Q7", "Q8", "Q10", "Q16", "Q17"] }
@@ -459,6 +459,46 @@
       ],
       "resolution": "Manifest comparison is necessary and not sufficient. It proves the repository agrees with itself, which is what it did: every source surface said 3.12.0 while the installed artifact answered 3.11.0. A claim that a channel is aligned therefore needs one probe of the distributed artifact, which is what the evidence for Q21 performs, and this entry records that no existing gate reaches it.",
       "doesNotEstablish": "That such a probe belongs in npm run verify - it needs a released artifact and a running listener, neither of which a unit gate may assume. It also does not establish a general check for the other distribution channels."
+    },
+    {
+      "id": "Q23",
+      "stage": "validation-planning",
+      "critical": true,
+      "question": "Is the zip the release page publishes conformant with the ZIP specification, and does any gate in this repository inspect it?",
+      "state": "self-resolved",
+      "attempts": 1,
+      "artifactsTried": [
+        "hipcortex-chrome-extension-v0.1.0.zip -> opened with System.IO.Compression and 168 entries listed",
+        "scripts/package.js -> the Windows leg called Compress-Archive, which emits backslash entry names",
+        "tests/quality/gates.spec.ts -> asserts only that package.js is reached through Node, and never reads the archive it produces"
+      ],
+      "evidence": [
+        "$ entry-name scan of the released zip -> 148 of 168 names contained a backslash and 0 contained a forward slash",
+        "$ node scripts/package.js then the same scan -> 148 forward slashes, 0 backslashes, manifest.json at the root",
+        "$ npm test -> tests/quality/zip.spec.ts pins the separator, the root manifest.json and the recoverable bytes"
+      ],
+      "resolution": "Not conformant, and nothing reached it. APPNOTE 4.4.17.1 names the forward slash as the entry separator; Compress-Archive on Windows PowerShell 5.1 writes backslashes, and the extension loads from dist/ either way, so no loadability test could observe it. The archive is now written by scripts/zip.js, which has no platform leg, and the script refuses to emit a backslash name or an archive whose manifest is not at the root.",
+      "doesNotEstablish": "That the store rejects a backslash archive - the defect was removed before uploading, so the tolerance of the pipeline is untested. It also says nothing about the policy review the archive must still pass."
+    },
+    {
+      "id": "Q24",
+      "stage": "validation-planning",
+      "critical": true,
+      "question": "Are the icons in the package real images at the sizes the manifest declares?",
+      "state": "self-resolved",
+      "attempts": 1,
+      "artifactsTried": [
+        "dist/icons/*.png -> four files of 70 bytes each",
+        "scripts/copy-assets.js -> wrote one base64 1x1 transparent PNG to all four filenames",
+        "tests/quality/manifest.spec.ts -> asserted the four paths exist and never read a dimension"
+      ],
+      "evidence": [
+        "$ System.Drawing measurement of the four packaged icons -> 1x1 for all four, 70 bytes each",
+        "$ store documentation on the icon requirement -> a 128x128 PNG is mandatory inside the archive",
+        "$ npm run verify after the fix -> the dimension and pixel assertions pass against 128x128 at 353 bytes"
+      ],
+      "resolution": "Not real images. The build wrote a 1x1 stub to every filename, which satisfies the manifest's path check and fails the store's icon requirement, so the package could not be submitted at all. The icons are now committed artwork in public/icons/, copied to dist/icons/ by the same asset step as every other file, at 16, 32, 48 and 128 pixels, and each one's dimensions are asserted from its own IHDR chunk.",
+      "doesNotEstablish": "That the artwork is a brand asset - the four files are geometric placeholders with transparent padding and must be replaced before the listing goes public. It also does not establish that the store accepts their alpha and framing."
     }
   ]
 }

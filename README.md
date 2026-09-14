@@ -131,7 +131,7 @@ to bring the runtime back rather than to wait.
 
 ```bash
 npm install
-npm run build          # tsc → dist/, then copies public/ assets and generates placeholder icons
+npm run build          # tsc → dist/, then copies public/ assets including the icons
 npm run watch          # tsc --watch (does not re-copy assets)
 npx tsc --noEmit       # typecheck only
 npm run lint           # ESLint flat config over src/ and tests/
