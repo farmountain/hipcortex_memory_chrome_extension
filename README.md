@@ -43,12 +43,19 @@ So a core later than `3.11.0` is not refused — it is *unmeasured*. Every claim
 
 ## Install
 
-**From the Chrome Web Store.** Install *HipCortex Memory* (ID
-`eklnpdcephecmddelagbablmeajoogkf`). It needs nothing else to start — on first run it reports which
-of the two transport modes it is in and what that mode needs.
-
 **From source.** `npm install`, `npm run build`, then `chrome://extensions` → Developer mode →
-Load unpacked → select `dist/`.
+Load unpacked → select `dist/`. This is the only install path that works today.
+
+> **Chrome Web Store — not yet listed.** The submission archive is built and attached to the
+> [`v0.1.0` release](https://github.com/farmountain/hipcortex_memory_chrome_extension/releases/tag/v0.1.0)
+> as `hipcortex-chrome-extension-v0.1.0.zip`, and the store description in `public/manifest.json`
+> is within the 132-character limit. Uploading it is a manual step a maintainer performs; until
+> that happens there is no listing to install from, and this section will not pretend otherwise.
+> The ID below is what the listing will carry, and it is already fixed.
+
+**The extension ID is `eklnpdcephecmddelagbablmeajoogkf`** — fixed from the start, because
+`public/manifest.json` pins a `key`. On first run the extension reports which of the two transport
+modes it is in and what that mode needs.
 
 Either way, Consumer Mode needs the native messaging host registered before capture can reach
 desktop. The extension cannot do that itself — no extension API can write a registry key — so it
