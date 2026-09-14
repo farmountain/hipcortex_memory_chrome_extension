@@ -17,7 +17,7 @@
  * passed the whole time.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -58,6 +58,14 @@ function pngSize(file: string): { width: number; height: number } {
   const bytes = readFileSync(file);
   expect(bytes.subarray(0, 8).toString("hex"), `${file} is not a PNG`).toBe("89504e470d0a1a0a");
   return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+}
+
+/** The colour type byte of a PNG's IHDR: 2 is truecolour with no alpha, 6 is truecolour with alpha. */
+function pngColourType(file: string): number {
+  const bytes = readFileSync(file);
+  expect(bytes.subarray(0, 8).toString("hex"), `${file} is not a PNG`).toBe("89504e470d0a1a0a");
+  expect(bytes.subarray(12, 16).toString("latin1"), `${file} IHDR`).toBe("IHDR");
+  return bytes[25];
 }
 
 describe("store submission package", () => {
@@ -149,5 +157,51 @@ describe("store listing artwork", () => {
     // assertion is on the copy mechanism, not on the word "store" — that file's own comment
     // mentions the store, and matching prose would make this test assert nothing.
     expect(COPY_ASSETS).not.toMatch(/store[\\/]/);
+  });
+
+  it("keeps the packaged icons in the RGBA form the manifest needs", () => {
+    // The dashboard wants screenshots as 24-bit PNG *without* alpha, and the icons the other way
+    // round: `tests/quality/manifest.spec.ts` decodes `icons/icon128.png` as four bytes per pixel
+    // and reads the alpha channel of two of them. Producing a screenshot is therefore the act most
+    // likely to leave the icons in the wrong colour type, so the pairing is pinned here.
+    for (const size of [16, 32, 48, 128]) {
+      expect(pngColourType(path.join(PUBLIC_DIR, "icons", `icon${size}.png`)), `icon${size}`).toBe(
+        6
+      );
+    }
+  });
+});
+
+describe("store listing screenshots", () => {
+  const SCREENSHOT_DIR = path.join(REPO_ROOT, "store", "screenshots");
+  const shipped = existsSync(SCREENSHOT_DIR)
+    ? readdirSync(SCREENSHOT_DIR)
+        .filter((name) => name.endsWith(".png"))
+        .sort()
+    : [];
+
+  it("ships at least one screenshot and no more than the five the dashboard accepts", () => {
+    expect(shipped.length).toBeGreaterThanOrEqual(1);
+    expect(shipped.length).toBeLessThanOrEqual(5);
+  });
+
+  it("ships every screenshot at 1280x800 with no alpha channel", () => {
+    // Both halves matter and neither implies the other. A screenshot at the wrong size is refused
+    // by the dashboard; one carrying alpha is refused for a different reason, and the extension's
+    // own artwork is exactly the file it would be copied from.
+    for (const name of shipped) {
+      const absolute = path.join(SCREENSHOT_DIR, name);
+      expect(pngSize(absolute), `${name} dimensions`).toEqual({ width: 1280, height: 800 });
+      expect(pngColourType(absolute), `${name} colour type`).toBe(2);
+    }
+  });
+
+  it("names every shipped screenshot in the runbook", () => {
+    // §9 is what a person follows when the dashboard says an asset is missing. A file the runbook
+    // does not name is a file nobody knows to upload, which is how this task started.
+    expect(STORE_DOC).toContain("store/screenshots/");
+    for (const name of shipped) {
+      expect(STORE_DOC, `${name} is not named in docs/STORE.md`).toContain(name);
+    }
   });
 });

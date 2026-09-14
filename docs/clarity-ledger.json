@@ -9,7 +9,7 @@
   "stages": [
     { "stage": "goals", "entries": ["Q1", "Q14"] },
     { "stage": "acceptance-criteria", "entries": ["Q2", "Q15", "Q19"] },
-    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24", "Q25", "Q26"] },
+    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24", "Q25", "Q26", "Q27", "Q28"] },
     { "stage": "unknowns", "entries": ["Q4", "Q5", "Q11", "Q20", "Q21"] },
     { "stage": "planning", "entries": ["Q6", "Q9", "Q18"] },
     { "stage": "react-iterations", "entries": ["Q7", "Q8", "Q10", "Q16", "Q17"] }
@@ -548,6 +548,51 @@
       ],
       "resolution": "Not accepted, and the field had to go - but not from dist/. The store refuses any package whose manifest carries a key and derives the published item's ID from a public key it generates itself, so the store ID will not be the pinned one. The field is therefore stripped from the archived manifest only, by storeSafeEntries in scripts/zip.js, which package.js applies and then checks; dist/manifest.json keeps it, because the native host's allowed_origins is derived from it. README.md, docs/STORE.md, docs/PRIVACY.md, docs/PROTOCOL.md, docs/END-STATE.md and the MV3 instruction file now say which of the two IDs each statement is about, and section 11 of docs/STORE.md records the post-upload step that replaces the key with the store's public key and re-registers the host.",
       "doesNotEstablish": "That the store accepts the corrected archive - the upload is manual and has not been retried. It also does not establish the published item's ID, which the store assigns on first upload and which therefore remains unknown; that is why the post-upload step exists. And it does not establish that a store installation reaches the core, because the key replacement and the host re-registration are steps a person performs."
+    },
+    {
+      "id": "Q27",
+      "stage": "validation-planning",
+      "critical": true,
+      "question": "The dashboard reports the store icon and the screenshots as missing. What does each have to be, and can this repository produce them without fabricating anything?",
+      "state": "self-resolved",
+      "attempts": 2,
+      "artifactsTried": [
+        "the dashboard checklist - names the store icon as 128x128 and a screenshot size in a form the store does not accept; that figure appears nowhere in this repository, and 1280x800 does",
+        "docs/STORE.md sections 2 and 9 and tests/quality/store.spec.ts - all three commit to 1280x800, and the spec requires that literal string to stay in the runbook",
+        "public/icons/icon128.png - 128x128 and RGBA, so it is legal as the store icon and illegal as a screenshot, which must carry no alpha channel",
+        ".scratch/browser-e2e.mjs - already launched Chromium over the DevTools Protocol against dist/, so the browser leg a screenshot needs was in the repository already"
+      ],
+      "evidence": [
+        "$ byte size of the four packaged icons -> 89, 114, 135 and 353 bytes of placeholder geometry before the regeneration and 274, 374, 620 and 1031 after",
+        "$ node .scratch/store-capture.mjs -> three frames captured from dist/ loaded unpacked, errors 0 on every scene, Chrome/149.0.7827.55",
+        "$ node .scratch/store-compose.mjs -> 01-popup.png 1280x800 colourType 2, 02-side-panel.png 1280x800 colourType 2, 03-runtime-settings.png 1280x800 colourType 2",
+        "$ npx vitest run tests/quality/store.spec.ts -> 17 passed, four of them new and reading the dimensions and the colour-type byte of every file in store/screenshots/",
+        "$ npm run verify -> Test Files 55 passed, Tests 853 passed, exit 0, with the four icon pixel assertions in tests/quality/manifest.spec.ts still green",
+        "docs/STORE.md - section 9 now names all three files and section 1 records the rebuilt archive at 231568 bytes with SHA-256 185AE6D8"
+      ],
+      "resolution": "Both assets now exist. The icon is one mark rendered at 16, 32, 48 and 128 pixels rather than resampled from a bitmap, supersampled 16 times and written with filter type 0 on every scanline because tests/quality/manifest.spec.ts decodes those pixels and reads the alpha channel of two of them. The screenshots are real viewport captures: one script loads dist/ unpacked, opens each surface and screenshots it, and a second crops each frame to the page's own body box, resamples it and lays it on the indigo field at exactly 1280x800 in colour type 2. Nothing is drawn, captioned, arrowed or mocked, and the browser chrome is absent because a viewport screenshot never had any. Every screenshot is asserted on its dimensions and its colour type, and the runbook is asserted to name every file that ships, so a file nobody knows to upload cannot reappear.",
+      "doesNotEstablish": "That the store accepts the frames, because the upload is manual and has not been made. It also does not establish that the artwork is a brand asset: the mark is drawn geometry, and the runbook still records all three tiles as placeholders. Two scenes in the section 9 plan are recorded as gaps rather than supplied - the context menu, which the operating system draws and no automation here can open, and a populated search result, which would put the user's own memory into a public image."
+    },
+    {
+      "id": "Q28",
+      "stage": "validation-planning",
+      "critical": true,
+      "question": "Is a screenshot of the popup safe to publish, given that its search panel reads a local index of the user's own captured conversations?",
+      "state": "self-resolved",
+      "attempts": 1,
+      "artifactsTried": [
+        "src/popup.ts and public/popup.html - the search scope select defaults to local, which reads the offline index, and its other option queries the runtime semantically",
+        "src/api/client.ts - the read-only messages the popup can send are HEALTH_CHECK, CAPTURE_STATUS and SEARCH_MEMORY, while ADD_MEMORY and QUICK_ADD_SELECTION are writes",
+        ".scratch/store-capture.mjs - grew a probe step that reads each scene's rendered text after the screenshot, so a frame can be audited rather than assumed"
+      ],
+      "evidence": [
+        "$ node .scratch/store-capture.mjs probe -> scope Captured conversations (offline), results 0 searchable offline, indexNote that nothing is searchable offline yet",
+        "$ node .scratch/store-capture.mjs probe -> badge online, queued 0, unacknowledged 0, passive off, apiKey empty, defaultActor browser-user",
+        "$ node .scratch/store-capture.mjs probe -> the options scene shows apiUrl http://127.0.0.1:3030 and transportMode auto, which is the loopback default",
+        "$ node .scratch/peek-png.mjs store/screenshots/01-popup.png -> the panel reads as a dark surface on the indigo field rather than text floating in a void"
+      ],
+      "resolution": "No frame contains a captured record. The search scope is left on its offline default, so no frame issues a semantic query against the runtime at all; the index reports zero records because nothing on this machine has been acknowledged yet, and the panel says so in words rather than looking broken. The quick-add field holds a sample sentence typed by the capture script and the script never submits it, so taking the pictures created no record. The API key field is empty, the actor is the default, and the capture script never calls ADD_MEMORY or QUICK_ADD_SELECTION.",
+      "doesNotEstablish": "That a screenshot taken on a machine with a populated index would look the same, which is why the empty result is shipped rather than staged. It also does not establish that the frames are accepted by the store, and it does not establish that a reviewer reads a zero as a true state rather than a broken panel; every zero is labelled, so the state is legible rather than silent."
     }
   ]
 }

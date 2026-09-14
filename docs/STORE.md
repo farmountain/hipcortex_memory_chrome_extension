@@ -31,9 +31,9 @@ repository already asserts.
 |---|---|
 | File | `hipcortex-chrome-extension-v0.1.0.zip` |
 | Built by | `npm run package` |
-| Size | 229,722 bytes |
+| Size | 231,568 bytes |
 | Entries | 168 |
-| SHA-256 | `9D103409DE4C25AFA58C5984CC6B728B1DAE6EC994B8F9E79FD6AC4A2AF83639` |
+| SHA-256 | `185AE6D8CE1DD23D7C970EF88D4B056330F6A4C50E2C64A9F8E78457E576FD98` |
 | `manifest.json` | at the archive root, and **not** byte-identical to `public/manifest.json`: the archived copy has no `key`, because the store refuses any package that carries one (§11) |
 
 `npm run package` refuses to write an archive whose entry names contain a backslash, whose
@@ -44,20 +44,22 @@ archive that was not ZIP-valid.
 **The release asset is this tree's own output, byte for byte.** The file `npm run package` wrote was
 uploaded to the `v0.1.0` release, and then downloaded back and compared: same size, same SHA-256, 168
 entries on both sides, no `key` in either manifest. An earlier asset on that release was built before
-the field was stripped and is the archive the store refused; it has been replaced. The in-repo writer
-stamps every entry with the time it was built, so a rebuild is never byte-identical to a previous
-one — if you rebuild, upload that file and hash the file you uploaded rather than trusting this
-table.
+the field was stripped and is the archive the store refused; it has been replaced. So has the asset
+that carried the first icon set: replacing the artwork rewrites four entries and therefore the whole
+archive, and every number in the table above was measured after that replacement rather than carried
+over from before it. The in-repo writer stamps every entry with the time it was built, so a rebuild is
+never byte-identical to a previous one — if you rebuild, upload that file and hash the file you
+uploaded rather than trusting this table.
 
 Properties verified against the built archive with an independent ZIP implementation
 (`System.IO.Compression`), not with the writer that produced it:
 
 ```
 entries=168 backslash=0 fwdslash=148 rootManifest=1 nestedManifest=0 hasKey=0
-icons/icon16.png  89 bytes   -> 16x16
-icons/icon32.png  114 bytes  -> 32x32
-icons/icon48.png  134 bytes  -> 48x48
-icons/icon128.png 353 bytes  -> 128x128
+icons/icon16.png   274 bytes  -> 16x16
+icons/icon32.png   374 bytes  -> 32x32
+icons/icon48.png   620 bytes  -> 48x48
+icons/icon128.png  1031 bytes -> 128x128
 ```
 
 ## 2. Graphic assets
@@ -70,14 +72,24 @@ icons/icon128.png 353 bytes  -> 128x128
 | Marquee | no | 1400×560 | `store/marquee-1400x560.png` |
 
 The icon, the promo tile and the marquee are **placeholders**. They share one visual identity — the
-indigo ink `#4F46E5` and a hard-edged square mark — and they are generated, not designed:
-`public/icons/` by `.scratch/make-icons.mjs`, the other two by `.scratch/make-store-art.ps1`. Both
-generators live in a gitignored directory and are run by hand; neither is part of the build.
-`docs/clarity-ledger.json` already records that the icons must be replaced before the listing goes
-public, and the promo tile and marquee carry that same status. Replace all of them together.
+indigo field `#4F46E5` and a mark that is a rounded plate carrying two lines of text — and that mark
+is drawn from geometry rather than designed: `public/icons/` by `.scratch/make-icons.mjs`, the other
+two by `.scratch/make-store-art.ps1`. Both generators live in a gitignored directory and are run by
+hand; neither is part of the build. `docs/clarity-ledger.json` already records that the icons must be
+replaced before the listing goes public, and the promo tile and marquee carry that same status.
+Replace all of them together.
 
-The generator asserts that every string it draws fits inside its frame and re-opens each file to
-check its dimensions, so a copy change that would clip the tile fails there instead of shipping.
+Both generators assert what they produced, because a file's existence is not its fitness. The icon
+generator renders the mark at each size it is asked for instead of resampling one bitmap,
+supersamples 16 times, writes filter type 0 on every scanline — because
+`tests/quality/manifest.spec.ts` decodes those pixels — and re-opens every file to check its
+dimensions, its colour type and the transparency of a corner pixel. The tile and marquee generator
+asserts that every string it draws fits inside its frame and re-opens each file to check its
+dimensions, so a copy change that would clip the tile fails there instead of shipping.
+
+The screenshots in `store/screenshots/` are the part of the listing that is a photograph of the
+product rather than artwork. §9 says what produced them, what state each was captured in, and which
+scene in the plan was deliberately not supplied.
 
 Store artwork deliberately does not live under `public/`. Only the files named in
 `scripts/copy-assets.js` reach `dist/`, and listing artwork is not part of the extension package.
@@ -289,32 +301,70 @@ component and is not something the extension can provide.
 
 ## 9. Screenshots
 
-Screenshots are **not** in this repository, and none were fabricated for it. A screenshot depicts
-behaviour, and the only honest way to produce one here is with the extension loaded and a runtime
-attached — which is a human step with a browser, not something this repository can do.
+Three screenshots ship in `store/screenshots/`, each exactly 1280×800 and each a 24-bit PNG with no
+alpha channel. The dashboard accepts JPEG or 24-bit PNG without alpha; alpha is the failure worth
+naming, because the extension's own icons are RGBA and a screenshot that inherited their colour type
+would be the wrong asset in the wrong slot. `tests/quality/store.spec.ts` reads the dimensions and the
+colour-type byte of every file in that directory, so the directory and the requirement cannot drift
+apart unnoticed.
 
-Capture them while running gate **8.12** in
-[`openspec/changes/cortexbridge-perception-layer/`](../openspec/changes/cortexbridge-perception-layer/),
-which already requires loading `dist/` unpacked and exercising exactly these surfaces:
+| File | Shows |
+|---|---|
+| `01-popup.png` | The toolbar popup: health badge, the three capture counters, the quick-add field and the offline search |
+| `02-side-panel.png` | The side panel — the second surface, where a capture is made beside the page being read |
+| `03-runtime-settings.png` | The options page: base URL, transport mode, default actor, and the migration section |
 
-| # | Show | Why it is worth a slot |
-|---|---|---|
-| 1 | The popup with the runtime reachable, quick-add field, and capture status | The whole product in one frame |
-| 2 | Search results with the provider filter in use | Cross-provider retrieval is the distinctive feature |
-| 3 | The context menu open over a selection on a supported site | Shows capture is a deliberate act, not passive surveillance |
-| 4 | The options page, transport mode and base URL | Shows the user controls where captures go |
-| 5 | The side panel beside a conversation | The second surface |
+**How they were produced.** `.scratch/store-capture.mjs` launches a real Chromium, loads `dist/`
+unpacked, opens each surface and screenshots the viewport over the Chrome DevTools Protocol;
+`.scratch/store-compose.mjs` then crops each frame to the page's own body box, resamples it to its CSS
+size and lays it on the indigo field at exactly 1280×800. Nothing is drawn, captioned, arrowed or
+mocked, and the browser's own chrome is absent **by construction** rather than cropped out, because a
+viewport screenshot never had any. Both scripts live in a gitignored directory and are run by hand;
+neither is part of the build, so no gate depends on a browser being installed.
 
-Size each to exactly 1280×800. Do not include the browser's own chrome, a macOS menu bar, the
-Windows taskbar, or any text stating the store's own category, rank or price. Screenshots are the
-first thing a reviewer looks at and the first thing that gets a listing rejected when they do not
-match the extension.
+**What state they are in, and why it matters.** Every frame was captured against a live runtime
+reporting version `3.11.0`, from an unpacked build whose install prompt names no host beyond the six
+AI sites. The popup's search scope is left on its offline default — "Captured conversations
+(offline)" — so no frame contains a query against the runtime's memory, a captured conversation, an
+API key or a personal actor name. The search panel reports zero offline records because that is the
+truthful state: nothing on this machine has been acknowledged by the runtime yet, and the panel says
+so in words rather than looking broken. The quick-add field holds a sample sentence typed by the
+capture script to show the control, and the script never submits it, so taking these pictures created
+no record.
+
+**The scenes that are not here.** Two rows of the plan below are deliberately unfilled. The context
+menu is drawn by the operating system and no automation in this repository can open it — the same
+limitation `.scratch/browser-e2e.mjs` records for that surface. The populated search result is the
+other: filling it means querying the user's own memory, which is the one thing a public listing must
+not put in an image. Both are recorded as gaps rather than filled with a reconstruction, because a
+screenshot of a menu that was never opened, or a result set that was never returned, would be a
+fabricated one.
+
+The plan below is the reasoning for which surfaces earned a frame, and the surfaces are the ones gate
+**8.12** in
+[`openspec/changes/cortexbridge-perception-layer/`](../openspec/changes/cortexbridge-perception-layer/)
+already requires loading `dist/` unpacked to exercise:
+
+| # | Show | Why it is worth a slot | Status |
+|---|---|---|---|
+| 1 | The popup with the runtime reachable, quick-add field, and capture status | The whole product in one frame | shipped, `01-popup.png` |
+| 2 | Search results with the provider filter in use | Cross-provider retrieval is the distinctive feature | **not shipped** — see "the scenes that are not here" |
+| 3 | The context menu open over a selection on a supported site | Shows capture is a deliberate act, not passive surveillance | **not shipped** — see "the scenes that are not here" |
+| 4 | The options page, transport mode and base URL | Shows the user controls where captures go | shipped, `03-runtime-settings.png` |
+| 5 | The side panel beside a conversation | The second surface | shipped, `02-side-panel.png` |
+
+Do not include the browser's own chrome, a macOS menu bar, the Windows taskbar, or any text stating
+the store's own category, rank or price. Screenshots are the first thing a reviewer looks at and the
+first thing that gets a listing rejected when they do not match the extension.
 
 ## 10. What this document does not establish
 
 - **That the item is listed.** It is not. No upload has happened.
-- **That the artwork is a brand asset.** It is placeholder geometry and typography.
-- **That the screenshots exist.** §9 is a capture plan, not a directory listing.
+- **That the artwork is a brand asset.** The mark is drawn geometry — a rounded plate and two lines —
+  not a designed identity. Replace all three files together before the listing is promoted.
+- **That the screenshots show a populated product.** Three frames exist and §9 names them; each is a
+  truthful capture of a runtime-connected extension whose offline index is empty, and two scenes in
+  the plan are recorded as gaps rather than supplied.
 - **That a submission would be approved.** These are the inputs; approval is a reviewer's decision.
 - **That the declarations in §4–§6 have been made.** They are drafted to be pasted, under the
   publisher account, by the person who owns that account.
