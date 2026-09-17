@@ -9,7 +9,7 @@
   "stages": [
     { "stage": "goals", "entries": ["Q1", "Q14"] },
     { "stage": "acceptance-criteria", "entries": ["Q2", "Q15", "Q19"] },
-    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24", "Q25", "Q26", "Q27", "Q28", "Q29", "Q30"] },
+    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24", "Q25", "Q26", "Q27", "Q28", "Q29", "Q30", "Q35"] },
     { "stage": "unknowns", "entries": ["Q4", "Q5", "Q11", "Q20", "Q21"] },
     { "stage": "planning", "entries": ["Q6", "Q9", "Q18"] },
     { "stage": "react-iterations", "entries": ["Q7", "Q8", "Q10", "Q16", "Q17", "Q31", "Q32", "Q33", "Q34"] }
@@ -733,6 +733,30 @@
       ],
       "resolution": "Two things, and the second is the one that lasts. First, every affected sentence was corrected against the shipped build rather than against the previous revision, and the privacy policy gained the section it was missing - the grant is the gate, an install reads nothing until it is given, and it is revocable from the extensions page. Second, the reason no gate failed is stated and then removed: the store spec compared documents to the manifest but never to a setting, so a block was added there that reads autoCapture out of src/types/index.ts, asserts the documents never say capture ships switched off, asserts the end-state statement agrees with G1.10, and asserts the host-permission box says the request is for the declared list. The setting is read, not assumed, so if the default ever moves the block fails loudly instead of inverting into a tautology. The paste limit is the same class of trap and is already asserted, which is how the rewritten box was caught at 1336 characters.",
       "doesNotEstablish": "That the store listing is accurate about anything the suite does not read - the description, the screenshots and the reviewer walkthrough are prose, and only the claims that name a manifest field or a shipped setting are pinned. It also does not establish that Chrome will accept the rewritten justifications: the 1,000-character limit is documented, but the boxes were measured, not submitted."
+    },
+    {
+      "id": "Q35",
+      "stage": "validation-planning",
+      "critical": true,
+      "question": "The Veridian goal's AC-007 asserted that the traceability gate printed 67/67, and it failed on a tree that cites 71/71. Is that a product defect, a validation contract that is stale, or an invocation artefact - and which of the three readings does the evidence support?",
+      "state": "self-resolved",
+      "attempts": 2,
+      "artifactsTried": [
+        ".scratch/veridian/state/runs/run-20260917-103242-f56747/result.json - the failing run, with the whole gate stdout quoted in the failure and AC-008 failing on an exit code beside it",
+        "docs/END-STATE.md - counted at the working tree and at git show 9ea2167:docs/END-STATE.md: 71 distinct criterion ids now, 67 then, and the four added are G1.10, G1.11, G1.12 and G1.13",
+        ".scratch/veridian/acceptance.yaml - the criterion read contains: 67/67, a literal that was true when it was written and is a second place the criterion count has to be edited",
+        "D:/all_projects/Veridian/core/validation/assertions.ts - matches is pattern.test(actual), so the count can be asserted as an invariant rather than as a literal",
+        ".scratch/veridian/state/runs/run-20260917-062028-eb3d8a/result.json - the earlier PASS 8/8, which is what ruled out a systematic failure of the two node criteria",
+        "scripts/traceability.js - the gate prints the number it declared and the number it cited, which is what makes the invariant expressible"
+      ],
+      "evidence": [
+        "$ node scripts/traceability.js -> criteria declared : 71 (docs/END-STATE.md); criteria cited : 71/71 by 59 requirement headings; OK - every criterion is cited and every cited test path exists; exit 0",
+        "$ node D:/all_projects/Veridian/cli/veridian.ts validate --no-memory --goal .scratch/veridian/goal.yaml --state-dir .scratch/veridian/state -> PASS (COMPLETED, 1 iteration(s)), 8/8 mandatory criteria passed, exit 0",
+        "$ node D:/all_projects/Veridian/cli/veridian.ts metrics --state-dir .scratch/veridian/negative-state --defects AC-002,AC-003,AC-004 -> M1 yes, M2 3/3, M3 none, M4 yes, M5 8/8, exit 0",
+        "the run before the fix -> AC-007 FAIL: expected stdout to contain 67/67, but it is criteria cited    : 71/71 by 59 requirement headings, while every other criterion in the same run passed"
+      ],
+      "resolution": "The contract was stale and the tree was right, and the invocation mattered as much as the literal. The count in AC-007 was a snapshot of docs/END-STATE.md taken when it held 67 criteria; four more were added with the capture-on-by-default change set, so the criterion failed a tree that satisfies the requirement it checks. It now asserts the invariant instead - the number the gate cited must equal the number it declared, read back with a backreference - which keeps the assertion, removes the second place the count has to be edited, and cannot go stale. Two further facts were measured rather than assumed: the two node criteria run with the working directory the command is launched from, so the validation is launched from the repository root with the goal and state paths given explicitly, and --defects is a statement about the runs being measured, so it belongs with the negative-control history in .scratch/veridian/negative-state and reports M3 false PASS if it is pointed at the positive one.",
+      "doesNotEstablish": "That Veridian ran any browser criterion: browser is disabled in environment.yaml and this run loaded no harness, so the two browser-manual gates remain out of band and quoted rather than executed. It also does not establish that the invariant catches a gate that miscounts in a way it does not print - it compares the two numbers the gate itself writes, no more."
     }
   ]
 }
