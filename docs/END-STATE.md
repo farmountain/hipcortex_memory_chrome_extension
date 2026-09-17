@@ -676,12 +676,15 @@ Decisions made here without further consultation, each with the condition that w
 3. **G3's secondary mechanism (offline provider search) has no change yet.** It needs a
    follow-up change (`cross-provider-search-index`) with a local index and its own retention rule,
    which must not become a second substrate.
-4. **The gates prove this repository's behaviour, not the product's behaviour in a browser.** As of
-   2026-09-14 the chain exits 0 — typecheck, lint, 54 files / 832 tests, build, and traceability at
-   67/67 criteria cited by 56 requirement headings — and the end-to-end round trip passed: 10
-   captures retained while the core was absent, 10 delivered when it returned, the provider filter
-   exclusive, and the throwaway actor deleted afterwards. Quoted output is in `tasks.md` groups 9
-   and 10. That is a real advance, and it stops short of the product: the two browser-manual gates
+4. **The gates prove this repository's behaviour, not the product's behaviour in a browser.** The
+   chain exits 0 — `npm run verify` (typecheck, lint, the suite in both of its projects, build) and
+   the traceability gate — and the end-to-end round trip passed on 2026-09-14: 10 captures retained
+   while the core was absent, 10 delivered when it returned, the provider filter exclusive, and the
+   throwaway actor deleted afterwards. The counts belong to the gates and are printed by them; they
+   are deliberately not restated here, because a count written into prose is a second place it has
+   to be maintained and a sentence that quotes a suite of 832 tests is wrong the day the suite
+   reaches 947. Run the gates for the numbers; quoted output is in `tasks.md` groups 9 and 10. That
+   is a real advance, and it stops short of the product: the two browser-manual gates
    (8.12, 8.13) are unrun, Consumer Mode has no host (risk 2), the POSIX leg of the scripts is
    unrun (10.13), and no spec can observe a rendered banner or a provider's live DOM. A criterion is
    still met only when its verification has been run and its output quoted — that rule did not relax
