@@ -28,4 +28,7 @@ Thumbs.db
 # Temporary
 *.tmp
 .cache/
-hipcortex-chrome-extension-v0.1.0.zip
+# The store package. It was pinned to one version here, which meant every release left the previous
+# archive untracked instead of ignored and the line had to be edited by hand. The archive is a release
+# asset and a `npm run package` output, so it is ignored by name pattern and never committed.
+hipcortex-chrome-extension-*.zip

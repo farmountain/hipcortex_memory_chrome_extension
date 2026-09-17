@@ -29,11 +29,11 @@ repository already asserts.
 
 | | |
 |---|---|
-| File | `hipcortex-chrome-extension-v0.1.0.zip` |
+| File | `hipcortex-chrome-extension-v0.2.0.zip` |
 | Built by | `npm run package` |
-| Size | 231,568 bytes |
-| Entries | 168 |
-| SHA-256 | `185AE6D8CE1DD23D7C970EF88D4B056330F6A4C50E2C64A9F8E78457E576FD98` |
+| Size | 249,060 bytes |
+| Entries | 171 |
+| SHA-256 | `110A7BB85436C307D01F60B6E76AF8A44CCF966BB08AB227B233236C53677CA1` |
 | `manifest.json` | at the archive root, and **not** byte-identical to `public/manifest.json`: the archived copy has no `key`, because the store refuses any package that carries one (§11) |
 
 `npm run package` refuses to write an archive whose entry names contain a backslash, whose
@@ -41,21 +41,27 @@ repository already asserts.
 those is a package the store rejects — and the backslash one shipped once already, in a Windows-built
 archive that was not ZIP-valid.
 
-**The release asset is this tree's own output, byte for byte.** The file `npm run package` wrote was
-uploaded to the `v0.1.0` release, and then downloaded back and compared: same size, same SHA-256, 168
-entries on both sides, no `key` in either manifest. An earlier asset on that release was built before
-the field was stripped and is the archive the store refused; it has been replaced. So has the asset
-that carried the first icon set: replacing the artwork rewrites four entries and therefore the whole
-archive, and every number in the table above was measured after that replacement rather than carried
-over from before it. The in-repo writer stamps every entry with the time it was built, so a rebuild is
-never byte-identical to a previous one — if you rebuild, upload that file and hash the file you
-uploaded rather than trusting this table.
+**The release asset is this tree's own output, byte for byte.** `v0.1.0` established that the
+mechanism preserves the bytes: the file `npm run package` wrote was uploaded to that release and then
+downloaded back and compared — same size, same SHA-256, 168 entries on both sides, no `key` in either
+manifest. An earlier asset on that release was built before the field was stripped and is the archive
+the store refused; it has been replaced. So has the asset that carried the first icon set: replacing
+the artwork rewrites four entries and therefore the whole archive.
+
+`0.2.0` is the first release built since the capture-reachability change set, and every number in the
+table above was measured on the file `npm run package` wrote for it, with an independent ZIP
+implementation rather than the writer that produced the file — not carried over from `0.1.0`. The
+entry count moved from 168 to 171, which is a net figure: the change set added compiled modules
+(`capture/flush.js`, `ui/site-access.js` and their declarations) and an earlier change set retired
+`api/client`, so the delta is not the number of files added. The in-repo writer stamps every entry
+with the time it was built, so a rebuild is never byte-identical to a previous one — if you rebuild,
+upload that file and hash the file you uploaded rather than trusting this table.
 
 Properties verified against the built archive with an independent ZIP implementation
 (`System.IO.Compression`), not with the writer that produced it:
 
 ```
-entries=168 backslash=0 fwdslash=148 rootManifest=1 nestedManifest=0 hasKey=0
+entries=171 backslash=0 fwdslash=151 rootManifest=1 nestedManifest=0 hasKey=0
 icons/icon16.png   274 bytes  -> 16x16
 icons/icon32.png   374 bytes  -> 32x32
 icons/icon48.png   620 bytes  -> 48x48
@@ -130,8 +136,10 @@ It is a capture tool, not an assistant. It reads the conversation, normalises it
 
 WHAT YOU GET
 
-- Nothing you worked out with an AI disappears into a scrollback. Switch on Auto-capture and the extension reads a conversation's turns as they appear and keeps them, without you copying anything.
-- Capture is off until you switch it on. The setting ships disabled and the passive path is inert while it is off; a manual capture still works, and the queue still drains, so a setting changed mid-flight cannot strand something already accepted.
+- Nothing you worked out with an AI disappears into a scrollback. Once you have allowed a site, the extension reads a conversation's turns as they appear and keeps them, without you copying anything.
+- Capture never touches a site you have not allowed. Chrome will not let it read ChatGPT, Claude, Grok, Gemini or DeepSeek until you grant that site, and the grant is one click on the settings page, listed next to the sentence it is about. Until then the extension is installed and idle.
+- Ask for the conversation in front of you, by name. "Capture this conversation" in the popup and in the side panel captures the whole of the conversation in the current tab on demand - not gated by any setting, because a click is not the extension acting on its own. It always answers: what it captured, what it is holding for your runtime, or why it could not - never silence.
+- A switch that turns watching off, and says so where you can see it. Passive capture ships on, and the popup carries the switch that stops it. With it off nothing is read as you browse; the button above still works, and a capture already accepted still drains.
 - A memory that outlives the tab. What you captured today is still there, searchable, on your disk, months later.
 - Search that answers even when your runtime is stopped. Results come from a local index of what has already been captured, so a stopped server is not a blank screen.
 - Capture you can audit instead of trusting. The popup shows whether capture is on, how many captures are queued, how many your runtime has not yet acknowledged, and a clearly marked paused state if the queue reaches its storage ceiling.
@@ -160,7 +168,7 @@ GET STARTED
 
 1. Add HipCortex Memory to Chrome. It needs no account and asks for no sign-in. The install prompt names the five AI sites and asks for no host beyond them.
 2. Capture something straight away: right-click the page and choose "Add page to HipCortex", or select some text and press Ctrl+Shift+M. Quick add needs no setting found first.
-3. To have conversations kept as they happen, open Settings from the popup and switch on "Auto-capture page visits". From then on, opening a conversation on ChatGPT, Claude, Gemini, Grok or DeepSeek is enough - the popup's capture count is the running total.
+3. Allow it to read a site: open Settings from the popup and click the button next to the list of the six supported addresses. From then on, opening a conversation on ChatGPT, Claude, Gemini, Grok or DeepSeek is enough - the popup's capture count is the running total, and the popup's "Capture this conversation" button captures one on demand. The popup shows a marked badge while any site is still unallowed, so a fresh install says what it is waiting for instead of looking broken.
 4. Give it somewhere to deliver to: install the HipCortex Desktop app, or start a HipCortex server on http://127.0.0.1:3030. Until you do, the popup reports that the runtime is unreachable and holds everything you captured in the queue - nothing is at stake in the order you do these in.
 
 Your conversations are already being written, by you, in five different places. This is the part that makes them yours.
@@ -189,7 +197,7 @@ happens to a captured conversation. The text below uses the room the box has.
 #### Single purpose description
 
 ```
-Capture the AI conversations a user reads and writes in their browser, and deliver them unchanged to a HipCortex runtime the user runs on their own computer. The extension reads conversation text on the five AI sites it supports, plus a page's title and URL or the user's selected text when the user explicitly captures one. It forwards that content over native messaging or loopback HTTP to the user's own runtime, and keeps it in local storage only until that runtime acknowledges delivery. The extension does not analyse, summarise, rank, index or retain conversation content for itself, sends nothing to the developer, and declares no remote destination. There is no server operated by the developer, no account, no sign-in, no sync and no analytics.
+Capture the AI conversations a user reads and writes in their browser, and deliver them unchanged to a HipCortex runtime the user runs on their own computer. The extension reads conversation text on the five AI sites it supports, and only there, and only once the user has allowed those sites through Chrome's own permission prompt; plus a page's title and URL or the user's selected text when the user explicitly captures one. It forwards that content over native messaging or loopback HTTP to the user's own runtime, and keeps it in local storage only until that runtime acknowledges delivery. The extension does not analyse, summarise, rank, index or retain conversation content for itself, sends nothing to the developer, and declares no remote destination. There is no server operated by the developer, no account, no sign-in, no sync and no analytics.
 ```
 
 ## 5. Privacy — data disclosure
@@ -207,7 +215,7 @@ demonstrably reads is the failure mode that gets a submission rejected.
 | Authentication information | **yes** | The options page has an optional **API key** field, and a non-empty value is sent to the configured runtime as `Authorization: Bearer` and `X-API-Key`. It is blank by default and no AI-site credential is ever read. It is declared rather than omitted for one reason worth knowing: settings live in `chrome.storage.sync`, so a key the user enters reaches the user's own Google account. See the note below. |
 | Personal communications | **yes** | The conversation turns on the five supported sites — what the user typed and what the model replied. Held in the extension's own local queue and search index until the runtime acknowledges delivery, then not kept. Delivered over native messaging or loopback HTTP to a runtime on the user's own computer. Never sent to the developer, who operates no server. |
 | Location | no | No region, IP address, GPS coordinate or nearby-device information is read or inferred. The only addresses the manifest pre-authorises are `127.0.0.1` and `localhost`. |
-| Web history | **yes** | Every capture carries the conversation's canonical URL, its title when the provider exposes one, and the capture timestamp, and the form's own definition of this category is the pages a user visited together with associated data such as page title and time of visit. Nothing outside the five supported sites is recorded, the history API is not used, and a URL is stored only for a page the user captured — or, with the opt-in auto-capture setting on, a page on one of those five sites. |
+| Web history | **yes** | Every capture carries the conversation's canonical URL, its title when the provider exposes one, and the capture timestamp, and the form's own definition of this category is the pages a user visited together with associated data such as page title and time of visit. Nothing outside the six declared addresses is recorded, the history API is not used, and a URL is stored only for a conversation the user captured — by clicking capture, or by having allowed that site while passive capture is on. The extension reads no site the user has not allowed, so the default state of a fresh install is that nothing at all is recorded. |
 | User activity | no | No network monitoring, click, mouse position, scroll or keystroke is recorded, and `chrome.tabs.onUpdated` has no call site. The extension's only observation is of the conversation DOM on the five supported sites, which is the thing it exists to read. |
 | Website content | **yes** | The text of the conversation page on the five supported sites; a page's title and URL when the user chooses *Add page to HipCortex*; and the current text selection when the user runs quick-add or *Add selection to HipCortex*. Read from the page, stored locally, delivered to the user's own runtime. No page outside the five sites is read unless the user selects text on it and invokes quick-add. |
 
@@ -244,11 +252,11 @@ machine and delivered to a program on that machine. The developer has no way to 
 https://github.com/farmountain/hipcortex_memory_chrome_extension/blob/main/docs/PRIVACY.md
 ```
 
-The field accepts 2,048 characters and needs one URL, and that one is it: the rendered policy in
-this repository's default branch. It resolves today, the repository is public, and
-[`docs/PRIVACY.md`](./PRIVACY.md) is the file it renders. The policy has to describe the three
-declarations above, which is why it names the captured URL and title and the optional API key rather
-than only the conversation text.
+The field accepts 2,048 characters and needs one URL. Paste exactly the block above, which is the
+rendered policy in this repository's default branch. That URL resolves today, the repository is
+public, and [`docs/PRIVACY.md`](./PRIVACY.md) is the file it renders. The policy has to describe the
+three declarations above, which is why it names the captured URL and title and the optional API key
+rather than only the conversation text.
 
 ## 6. Permission justifications
 
@@ -320,11 +328,11 @@ Drives the periodic drain of the capture queue. A service worker is stopped when
 ```
 This extension has two host needs and no others.
 
-1. Content scripts on the five supported AI sites, declared as six origins because ChatGPT has two hostnames: https://chatgpt.com/*, https://chat.openai.com/*, https://claude.ai/*, https://gemini.google.com/*, https://grok.com/* and https://chat.deepseek.com/*. Reading the conversation on those pages is the extension's entire function; the content script there is the feature, not a convenience. Nothing is read on any other site.
+1. Content scripts on the five supported AI sites, as six origins because ChatGPT has two hostnames: https://chatgpt.com/*, https://chat.openai.com/*, https://claude.ai/*, https://gemini.google.com/*, https://grok.com/* and https://chat.deepseek.com/*. Reading conversations there is its entire function, and it reads no other site. The same six addresses are declared under optional_host_permissions, and the settings page requests exactly that list in one click; until then Chrome does not let it read them.
 
-2. Loopback access, so it can deliver to a HipCortex runtime on the user's own computer: http://127.0.0.1:3030/* and http://localhost:3030/*.
+2. Loopback access, to deliver to a HipCortex runtime on the user's own computer: http://127.0.0.1:3030/* and http://localhost:3030/*.
 
-No remote host is pre-authorised. An address that is not loopback is refused in auto and consumer modes, and in developer mode it needs a confirmation that names the host plus a banner that stays visible while it is in effect. The same six origins also appear under optional_host_permissions, which nothing requests at runtime; they are declared for the record.
+No remote host is pre-authorised. A non-loopback address is refused in auto and consumer modes, and in developer mode it requires a confirmation naming the host plus a banner that persists while it is in effect.
 ```
 
 #### Remote code justification
@@ -347,11 +355,18 @@ Gemini, Grok, DeepSeek). That is the mechanism that puts the capture script on t
 is what the install-time warning names.
 
 `optional_host_permissions` lists the same six origins because `docs/END-STATE.md` **G1.9** requires
-it. Be aware of one thing when filling the form: **nothing requests them at runtime.**
-`chrome.permissions.request` has no call site anywhere in `src/`. Capture into those sites does not
-depend on the optional grant, so the declaration is currently redundant. It stays — G1.9 requires it —
-and it is described here rather than quietly left unexplained, because a reviewer comparing the two
-lists will notice.
+it, and the options page requests **that list, unchanged**, through `chrome.permissions.request` —
+`src/options.ts` is the one call site in `src/`. Two deliberate properties of that request are worth
+stating for a reviewer comparing the two lists:
+
+- **It names every declared origin at once and nothing else.** There is no per-host grant, no
+  origin built from a string, and no address the manifest does not declare, so the permission asked
+  for is exactly the permission declared.
+- **It is made from the options page, in the page, and not routed through the service worker.**
+  Chrome answers `permissions.request` only for a gesture in the document that made the call, a
+  gesture does not survive a message hop, so routing it through the worker would turn one click into
+a silent no-op. This is why the grant is one click on a page the user is already looking at rather
+than something other surfaces can trigger.
 
 ### Remote code
 
@@ -393,25 +408,35 @@ whole of the security-relevant behaviour, because every path that would leave th
 closed and says why.
 
 1. Install the extension. It appears with the name **HipCortex Memory**. The install prompt names
-   the six AI sites and asks for no host beyond them.
+   the six permitted addresses — five AI sites, ChatGPT being declared under two hostnames — and
+   asks for no host beyond them.
 2. Click the toolbar icon. The popup opens and shows a health indicator reporting that the runtime
-   is unreachable, alongside a capture status section showing capture state, queue length and
+   is unreachable, alongside a capture status section showing the passive switch, queue length and
    unacknowledged count. **Nothing is silently failing.** With no runtime installed, quick-add
    reports a refusal and the capture stays in the queue — it is not discarded and not reported as
    delivered.
-3. Open the options page from the popup's Settings link. Set transport mode to `developer` and enter
-   a base URL on a host that is not this machine, for example `http://example.com:3030`. A
-   confirmation dialog appears that names that exact host and states that every captured
-   conversation will be sent there. Choose Cancel: the address is not saved and the previously saved
-   address is named. This is the anti-exfiltration behaviour, and it is the reason this extension
-   exists in the shape it does.
+3. Open the options page from the popup's Settings link. It lists the six permitted addresses with
+   the sentence *"HipCortex is allowed to read…"* or *"Nothing is captured from a site until you
+   allow it"*, and a button beside it. Click the button: Chrome asks to allow exactly those six
+   addresses and nothing else. **That grant is the whole of what the extension may read**, and it is
+   revocable from `chrome://extensions` at any time. Then, from the same page, set transport mode to
+   `developer` and enter a base URL on a host that is not this machine, for example
+   `http://example.com:3030`. A confirmation dialog appears that names that exact host and states
+   that every captured conversation will be sent there. Choose Cancel: the address is not saved and
+   the previously saved address is named. This is the anti-exfiltration behaviour, and it is the
+   reason this extension exists in the shape it does.
 4. Press Ctrl+Shift+H. The side panel opens beside the page.
 5. Right-click a text selection on any page. The menu shows "Add selection to HipCortex" and "Search
    HipCortex for selection". Right-click a page with no selection and it shows "Add page to
    HipCortex".
-6. Open `https://chatgpt.com` and start a conversation. With no runtime the extension reports that
-   capture is on but delivery is blocked, and the queue length rises. The captures are held, not
-   lost.
+6. Click **Capture this conversation** in the popup on any page that is not one of the six — for
+   example this dashboard. It reports a typed sentence saying the page is not a conversation on a
+   site the extension reads. **A capture control that hangs instead of answering is the defect this
+   control exists to make impossible**, so the check is that it answers at all.
+7. Open `https://chatgpt.com` and start a conversation. Before the grant in step 3 the extension is
+   idle there and the popup's badge is marked `!`, which is what a fresh install shows. After the
+   grant, and with no runtime, the extension reports that capture is on but delivery is blocked, and
+   the queue length rises. The captures are held, not lost.
 
 To exercise a successful capture end-to-end, a HipCortex runtime is required. It is a local
 component and is not something the extension can provide.
@@ -427,7 +452,7 @@ apart unnoticed.
 
 | File | Shows |
 |---|---|
-| `01-popup.png` | The toolbar popup: health badge, the three capture counters, the quick-add field and the offline search |
+| `01-popup.png` | The toolbar popup: health badge, the "Capture this conversation" button, the passive-capture switch with the three capture counters, the quick-add field and the offline search |
 | `02-side-panel.png` | The side panel — the second surface, where a capture is made beside the page being read |
 | `03-runtime-settings.png` | The options page: base URL, transport mode, default actor, and the migration section |
 

@@ -363,3 +363,86 @@ describe("store privacy tab copy", () => {
     expect(existsSync(PRIVACY_DOC)).toBe(true);
   });
 });
+
+/**
+ * The documents and the shipped settings, held to each other.
+ *
+ * This block exists because the two drifted once, in the direction that matters. `autoCapture` was
+ * flipped to `true` and the consent flow that made the flip acceptable was built, but the paste-ready
+ * listing copy, the reviewer instructions, the privacy disclosure for *Web history*, the privacy
+ * policy, the single-purpose box and the end-state statement all still described a build whose
+ * capture shipped switched off — and one of them, `docs/END-STATE.md`, contradicted its own locked
+ * interpretation at the same time. Nothing in the suite could fail on it: every document assertion
+ * here was about a manifest field, and no assertion anywhere compared a sentence about a *setting*
+ * to the setting's value.
+ *
+ * A document that tells the user capture is off while it is on is the same defect as the button that
+ * hangs, and it is worse in one respect: the store makes the listing read-only after the first
+ * upload, so a wrong sentence there cannot be corrected without a version bump.
+ */
+describe("the documents agree with the shipped capture defaults", () => {
+  const SETTINGS = readFileSync(path.join(REPO_ROOT, "src", "types", "index.ts"), "utf8");
+  const END_STATE = readFileSync(path.join(REPO_ROOT, "docs", "END-STATE.md"), "utf8");
+  const POLICY = readFileSync(path.join(REPO_ROOT, "docs", "PRIVACY.md"), "utf8");
+  const README = readFileSync(path.join(REPO_ROOT, "README.md"), "utf8");
+  const LISTING = section("## 3. Paste-ready listing copy");
+
+  /** Whether `src/types/index.ts` currently ships `autoCapture` on, read rather than assumed. */
+  const SHIPS_ON = /^\s*autoCapture:\s*true\b/m.test(SETTINGS);
+
+  it("reads the shipped default from the source rather than assuming it", () => {
+    // If `autoCapture` ever loses its literal `true`, this turns red instead of silently inverting
+    // every assertion below into a tautology. `DEFAULT_SETTINGS` is the only place it can be set.
+    expect(SETTINGS).toMatch(/export const DEFAULT_SETTINGS/);
+    expect(SETTINGS).toMatch(/^\s*autoCapture:\s*(true|false)\b/m);
+    expect(SHIPS_ON).toBe(true);
+  });
+
+  it("never tells the reader that capture ships switched off", () => {
+    // The exact sentences the previous revision carried, kept verbatim so the regression is
+    // recognised rather than merely absent.
+    const SWITCHED_OFF = /ships disabled|capture is off until|off until you switch it on/i;
+    for (const [name, text] of [
+      ["docs/STORE.md §3", LISTING],
+      ["docs/STORE.md", STORE_DOC],
+      ["docs/PRIVACY.md", POLICY],
+      ["README.md", README],
+      ["docs/END-STATE.md", END_STATE],
+    ] as const) {
+      expect(text, `${name} states a switch-off default while autoCapture ships on`).not.toMatch(
+        SWITCHED_OFF
+      );
+    }
+  });
+
+  it("states the default in the end-state section that is authoritative for it", () => {
+    // G1's statement is what the change set is read against, so it has to agree with the settings
+    // object. It said the opposite while G1.10's locked interpretation said `true`.
+    const statement = END_STATE.slice(END_STATE.indexOf("## G1 — "), END_STATE.indexOf("## G2 — "));
+    expect(statement).toMatch(/`autoCapture` defaults to `true`/);
+    expect(statement).not.toMatch(/defaults to `false`/);
+  });
+
+  it("names the site grant wherever the listing says what the extension reads", () => {
+    // With the flag on by default, the site grant is the only thing standing between an install and
+    // a page it reads, so every statement of what it reads has to name it. These are the three
+    // places the store displays to a person — the listing, the single-purpose box and the policy.
+    const GRANT = /allow|grant|permission/i;
+    expect(LISTING).toMatch(GRANT);
+    expect(LISTING).toMatch(/never touches a site you have not allowed/i);
+    expect(pasteBlock("Single purpose description")).toMatch(GRANT);
+    expect(POLICY).toMatch(GRANT);
+  });
+
+  it("describes the site grant as one request for the declared list and nothing else", () => {
+    // A reviewer reads this box against the manifest's `optional_host_permissions`. The declared
+    // patterns are asserted elsewhere; what is asserted here is that the document says the request
+    // is for that list, because a build that asked for an origin the manifest does not declare
+    // would be asking for a permission the reviewer never approved.
+    const box = pasteBlock("Host permission justification");
+    expect(box).toMatch(/optional_host_permissions/);
+    expect(box).toMatch(/settings page/i);
+    expect(box).not.toMatch(/nothing requests them at runtime/i);
+  });
+});
+

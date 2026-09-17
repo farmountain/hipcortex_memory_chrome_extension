@@ -1,6 +1,6 @@
 # Privacy policy — HipCortex Memory
 
-**Last updated: 2026-09-14.**
+**Last updated: 2026-09-17.**
 
 This policy covers the **HipCortex Memory** browser extension, whether it was installed from the
 Chrome Web Store or loaded from source. It does not cover the HipCortex runtime, which is a separate
@@ -12,7 +12,8 @@ else, and the developer of this extension receives no data of any kind.**
 ## What the extension accesses
 
 - **The text of AI conversations** on the sites it supports: ChatGPT, Claude, Gemini, Grok and
-  DeepSeek, and only there. It reads the conversation when you are on one of those pages.
+  DeepSeek, and only there. It reads the conversation when you are on one of those pages and have
+  allowed the extension to read that site — see **You control which sites it can read** below.
 - **The address and title of the page a capture comes from**, recorded with the capture so that a
   memory can be traced back to its source. For a conversation that is the conversation's own URL;
   it is also what is recorded when you explicitly choose "Add page to HipCortex" from the
@@ -26,6 +27,23 @@ It does not read pages outside those five sites. It does not read your browser's
 bookmarks, your downloads, your other extensions, your passwords, or your files. The only record it
 keeps of a page you visited is the address of a page you captured, and the Chrome Web Store listing
 declares that under "web history" rather than leaving it out.
+
+## You control which sites it can read
+
+**A newly installed extension reads nothing at all, on any site, until you allow it.** Chrome does
+not let the extension read the supported sites on its own: the extension declares those addresses,
+and Chrome grants them only when you approve them. The extension asks for exactly those sites, and
+for nothing else, in one click from its own settings page; before you make that grant it is
+installed and idle there.
+
+That permission is yours to withdraw. Removing it from the Chrome extensions page takes effect
+immediately — the extension stops reading those sites — and the popup shows a warning badge whenever
+any of the supported sites is not allowed, so the state is visible rather than something you have to
+remember.
+
+The extension also has a passive-capture setting that decides whether it watches those sites as you
+browse. It is on when you install, and the popup carries the switch that turns it off. With it off,
+nothing is read as you browse; a capture you ask for yourself still works.
 
 ## Where that data goes
 

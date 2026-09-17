@@ -27,7 +27,7 @@ It is built so that every claim about it is provable by a command: see [Developm
 
 | Component | Version | Declared in |
 |-----------|---------|-------------|
-| This extension | `0.1.0` | `package.json`, `public/manifest.json` |
+| This extension | `0.2.0` | `package.json`, `public/manifest.json` |
 | HipCortex core it was measured against | `3.11.0` | every observation in [docs/PROTOCOL.md](./docs/PROTOCOL.md) |
 
 Those two numbers are deliberately independent, and the reason is worth stating because it looks
@@ -47,8 +47,8 @@ So a core later than `3.11.0` is not refused — it is *unmeasured*. Every claim
 Load unpacked → select `dist/`. This is the only install path that works today.
 
 > **Chrome Web Store — not yet listed.** The submission archive is built and attached to the
-> [`v0.1.0` release](https://github.com/farmountain/hipcortex_memory_chrome_extension/releases/tag/v0.1.0)
-> as `hipcortex-chrome-extension-v0.1.0.zip`. The listing's short description is the manifest's
+> [`v0.2.0` release](https://github.com/farmountain/hipcortex_memory_chrome_extension/releases/tag/v0.2.0)
+> as `hipcortex-chrome-extension-v0.2.0.zip`. The listing's short description is the manifest's
 > `description`, and it reads:
 >
 > > **Stop losing your AI conversations.** Capture ChatGPT, Claude, Grok, Gemini and DeepSeek into a
@@ -115,11 +115,18 @@ See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the flow and the layer ru
 
 ## Features (MVP)
 
-- **Popup**: health indicator, quick-add memory, search
+- **Capture this conversation**: one button, on every surface, that captures the conversation in the
+  current tab on demand — regardless of whether passive capture is on, because a click is not the
+  extension acting on its own. It always answers: a capture that happened, a capture that is durably
+  queued but not yet acknowledged, or a typed refusal naming the code and the reason. A button that
+  appears to do nothing looks exactly like a broken extension, so there is no path through it that
+  returns nothing
+- **Popup**: health indicator, passive-capture switch, queue status, quick-add memory, search
 - **Side Panel**: richer search + capture (Ctrl/Cmd+Shift+H)
 - **Context Menu**: “Add selection / page to HipCortex”, “Search selection”
 - **Keyboard**: Ctrl/Cmd+Shift+M = quick-add current selection
-- **Options page**: base URL, API key, default actor, transport mode, feature flags
+- **Options page**: base URL, API key, default actor, transport mode, feature flags, and the
+  one-click site-access grant
 - **Migration**: import a HipCortex export into the configured core — one record at a time through
   `POST /memory/add`, never `POST /memory/bulk`, because bulk is measured losing `tags`, `source` and
   `priority` while still reporting `failed: 0` — and resolve an id from before the import through the
@@ -154,6 +161,17 @@ The popup reports passive capture on/off, queue length, the **unacknowledged cou
 the queue is **paused** at its spill limit. A non-zero unacknowledged count is a normal transient
 state, not an error; a paused queue is a user-visible message naming the count, because the fix is
 to bring the runtime back rather than to wait.
+
+**Passive capture is on in a fresh profile, and the switch that turns it off is on the popup.** The
+setting decides whether the extension acts on its own when it notices a page change; a click does
+not go through it. That interaction is the point: the extension cannot read a site until the user has
+granted it that site, so "on by default" and "capturing something you did not ask for" are not the
+same statement. Chrome's site access is granted from the Options page in one click, next to the
+sentence it is about — the request has to be answered by the page that the gesture happened in, so
+routing it through the worker would turn one click into a silent no-op — and the same sentence is
+shown on the popup badge and on the first-run page, so the extension never captures while a screen
+tells the user it is not reading anything. Revoking all six hosts is still one visit to
+`chrome://extensions`.
 
 ## Development
 
@@ -215,11 +233,21 @@ broken one, so `npm run build` before claiming a change works is a rule, not a s
   [docs/PROTOCOL.md](./docs/PROTOCOL.md) §9.
 - Provider fixtures are structurally faithful but synthetic. They make the selector ladders
   regression-proof; they are not evidence that a rung matches today's live DOM.
-- Every claim about a **rendered browser surface is unrun**. The specs boot the shipped HTML and the
-  shipped controller under jsdom, which proves what the page sends and renders, not that Chrome
-  paints it: the popup's online/offline indicator, the manual add, the context-menu capture, the side
-  panel via Ctrl/Cmd+Shift+H, the options **Save** plus test connection, a live capture with
-  `autoCapture` on, and a real cross-provider context injection all need an unpacked load of `dist/`.
+- Every claim about a **rendered browser surface is unrun by this repository's own gates.** The specs
+  boot the shipped HTML and the shipped controller under jsdom, which proves what the page sends and
+  renders, not that Chrome paints it: the popup's online/offline indicator, the manual add, the
+  context-menu capture, the side panel via Ctrl/Cmd+Shift+H, the options **Save** plus test
+  connection, a live capture with `autoCapture` on, and a real cross-provider context injection all
+  need an unpacked load of `dist/`.
+  - The maintainer does run two such loads from a gitignored directory, and they are what the numbers
+    below were read from. **They are not reproducible from a clone**, so treat them as a reported
+    measurement rather than as a gate. At `0.2.0`: a popup/options/side-panel pass over a real
+    Chromium reading the shipped `dist/` reached **26 of 26** checks — including that a fresh profile
+    reports passive capture on, and that clicking **Capture this conversation** on a page that is not
+    a supported site answers with a typed `PAGE_NOT_WATCHED` sentence and re-enables the button — and
+    a capture pass that fulfils navigation from the provider fixtures so the real bundle runs on them
+    reached **53 of 53**, capturing five conversations with `autoCapture` at its shipped default,
+    reporting `refused=0` and `paused=false`, and writing nothing to the live core.
 - The migration's machine leg is executed and recorded — one capture read back by REST export, the
   `hipcortex backup` CLI and MCP `search_memory`, with the same messages in the same order — but the
   capture was produced by this repository's own egress code under Node, not by a real provider tab.
