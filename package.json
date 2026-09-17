@@ -1,7 +1,8 @@
 {
   "name": "hipcortex-chrome-extension",
-  "version": "0.2.0",
-  "description": "HipCortex Memory — browser perception layer. Captures ChatGPT, Claude, Grok, Gemini and DeepSeek conversations into a local-first HipCortex memory over native messaging or loopback HTTP.",
+  "version": "0.2.1",
+  "description": "HipCortex Memory — the browser perception layer for a local-first HipCortex runtime. Captures ChatGPT, Claude, Grok, Gemini and DeepSeek conversations, and delivers them to a runtime on your own machine: either the HipCortex Desktop app over native messaging, or a server you started yourself on loopback. It reads no site until you grant it that site, it pre-authorises no remote host, and it never discards a capture the runtime has not acknowledged.",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "scripts": {

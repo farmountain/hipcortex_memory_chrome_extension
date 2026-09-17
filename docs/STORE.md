@@ -29,11 +29,11 @@ repository already asserts.
 
 | | |
 |---|---|
-| File | `hipcortex-chrome-extension-v0.2.0.zip` |
+| File | `hipcortex-chrome-extension-v0.2.1.zip` |
 | Built by | `npm run package` |
 | Size | 249,060 bytes |
 | Entries | 171 |
-| SHA-256 | `110A7BB85436C307D01F60B6E76AF8A44CCF966BB08AB227B233236C53677CA1` |
+| SHA-256 | `BFE3B3C975CCB5D281C4437C8F448B7716F6AD4CC2976BB7B6CF188A2BA65AC8` |
 | `manifest.json` | at the archive root, and **not** byte-identical to `public/manifest.json`: the archived copy has no `key`, because the store refuses any package that carries one (§11) |
 
 `npm run package` refuses to write an archive whose entry names contain a backslash, whose
@@ -48,14 +48,23 @@ manifest. An earlier asset on that release was built before the field was stripp
 the store refused; it has been replaced. So has the asset that carried the first icon set: replacing
 the artwork rewrites four entries and therefore the whole archive.
 
-`0.2.0` is the first release built since the capture-reachability change set, and every number in the
-table above was measured on the file `npm run package` wrote for it, with an independent ZIP
+`0.2.0` was the first release built since the capture-reachability change set, and every number in
+the table above was measured on the file `npm run package` wrote for it, with an independent ZIP
 implementation rather than the writer that produced the file — not carried over from `0.1.0`. The
 entry count moved from 168 to 171, which is a net figure: the change set added compiled modules
 (`capture/flush.js`, `ui/site-access.js` and their declarations) and an earlier change set retired
-`api/client`, so the delta is not the number of files added. The in-repo writer stamps every entry
-with the time it was built, so a rebuild is never byte-identical to a previous one — if you rebuild,
-upload that file and hash the file you uploaded rather than trusting this table.
+`api/client`, so the delta is not the number of files added.
+
+`0.2.1` changes no shipped source at all. A working-tree diff restricted to the three trees that
+reach the archive — `git diff --stat -- public/ scripts/ src/` — reports one changed file, and that
+file is `public/manifest.json`, whose only differing line is the `version` field. The string is the
+same length as the one it replaced, so the size and entry count above are unchanged; they were
+re-measured on the new file rather than carried forward, and the SHA-256 is nevertheless a different
+number, for the reason in the next sentence.
+
+The in-repo writer stamps every entry with the time it was built, so a rebuild is never
+byte-identical to a previous one — if you rebuild, upload that file and hash the file you uploaded
+rather than trusting this table.
 
 Properties verified against the built archive with an independent ZIP implementation
 (`System.IO.Compression`), not with the writer that produced it:
