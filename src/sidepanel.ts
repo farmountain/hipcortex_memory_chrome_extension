@@ -4,6 +4,7 @@ import type {
   SearchResult,
   MemoryRecord,
   ExtensionSettings,
+  ConversationCaptureReport,
   PlaceContextReport,
 } from "./types/index.js";
 import { DEFAULT_SETTINGS } from "./types/index.js";
@@ -87,9 +88,70 @@ function placementNote(
   return `Placed ${placed} characters into ${where}. Nothing was sent.`;
 }
 
+/**
+ * The line the panel shows after a conversation capture — G1.13.
+ *
+ * The side panel and the popup describe the same click with the same three outcomes, because a user
+ * who captured from the panel and then opened the popup must not be told a different story about the
+ * same conversation. Three states, keyed on the report's `code` rather than on the wording:
+ *
+ * - no code: the runtime acknowledged it, so it says stored;
+ * - `NOT_ACKNOWLEDGED` with a success: read and kept here, to be retried — not lost, not yet stored;
+ * - a failure: the typed reason, which names the page, the provider or the grant that is missing.
+ *
+ * The last case is built from `error` and `code` together: "it did not work" without the reason is
+ * exactly what made the original report impossible to act on.
+ */
+function conversationCaptureNote(
+  response: MessageResponse<ConversationCaptureReport>
+): [string, "ok" | "pending" | "err"] {
+  const report = response.data;
+
+  if (!response.success || !report?.captured) {
+    const code = report?.code ?? "ERROR";
+    const why = response.error ?? report?.detail ?? "the worker did not report a reason";
+    return [`Could not capture this conversation (${code}): ${why}`, "err"];
+  }
+
+  const where = report.providerId ?? "this page";
+  const count = report.messages === undefined ? "the conversation" : `${report.messages} messages`;
+
+  if (report.code === "NOT_ACKNOWLEDGED") {
+    return [
+      `Read ${count} from ${where} and kept them here. The runtime has not acknowledged them yet, so they will be retried — nothing was lost.`,
+      "pending",
+    ];
+  }
+
+  return [`Captured ${count} from ${where}. Stored.`, "ok"];
+}
+
+/**
+ * One click, one conversation, one visible answer.
+ *
+ * This is the action the panel was missing: full-thread capture used to be reachable only through the
+ * passive path, so a user with the passive switch off had no way to ask for the conversation in front
+ * of them. The worker treats the click as a `manual` trigger, which is the one capture path the
+ * passive setting does not gate — asking is not the extension acting on its own.
+ */
+async function captureActiveConversation(): Promise<void> {
+  const button = byId<HTMLButtonElement>("btn-capture-conversation");
+  const note = byId<HTMLParagraphElement>("conversation-capture-note");
+
+  button.disabled = true;
+  note.textContent = "Reading this page…";
+  note.classList.remove("hidden");
+
+  const response = await send<ConversationCaptureReport>({ type: "CAPTURE_ACTIVE_TAB" });
+  const [sentence, state] = conversationCaptureNote(response);
+
+  note.textContent = sentence;
+  note.className = `capture-note ${state}`;
+  button.disabled = false;
+}
+
 function render(data: SearchResult) {
   const box = document.getElementById("results")!;
-
   const path = document.createElement("div");
   path.className = "result-source";
   path.textContent =
@@ -181,6 +243,10 @@ async function doSearch(q: string) {
 document.addEventListener("DOMContentLoaded", async () => {
   await refreshHealth();
   await refreshEgressBanner();
+
+  document.getElementById("btn-capture-conversation")!.addEventListener("click", () => {
+    void captureActiveConversation();
+  });
 
   // Pending search from context menu
   const session = await chrome.storage.session.get("pendingSearch");

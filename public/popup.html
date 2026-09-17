@@ -18,6 +18,11 @@
 
     <div id="egress-banner" class="egress-banner hidden" role="status"></div>
 
+    <section class="conversation-capture" id="conversation-capture">
+      <button id="btn-capture-conversation" class="primary">Capture this conversation</button>
+      <p id="conversation-capture-note" class="capture-export-note hidden" role="status" aria-live="polite"></p>
+    </section>
+
     <section class="quick-add">
       <label for="memory-text">Capture memory</label>
       <textarea id="memory-text" rows="3" placeholder="Decision, fact, or observation…"></textarea>
@@ -30,9 +35,13 @@
 
     <section class="capture-status" id="capture-status">
       <div class="capture-row">
-        <span class="capture-label">Passive capture</span>
+        <label class="capture-label" for="capture-toggle">
+          <input id="capture-toggle" type="checkbox" />
+          Passive capture
+        </label>
         <span id="capture-passive" class="capture-value">…</span>
       </div>
+      <p id="capture-toggle-note" class="capture-export-note" role="status" aria-live="polite"></p>
       <div class="capture-row">
         <span class="capture-label">Queued</span>
         <span id="capture-queued" class="capture-value">…</span>

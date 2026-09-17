@@ -8,6 +8,7 @@ import type {
 } from "./types/index.js";
 import { DEFAULT_SETTINGS, TRANSPORT_MODES } from "./types/index.js";
 import { isLoopbackUrl } from "./api/transport/endpoints.js";
+import { declaredOrigins, describeSiteAccess, queryAllowedOrigins } from "./ui/site-access.js";
 
 function send<T>(msg: unknown): Promise<MessageResponse<T>> {
   return new Promise((resolve) => chrome.runtime.sendMessage(msg, (r) => resolve(r as MessageResponse<T>)));
@@ -21,6 +22,60 @@ function showStatus(text: string, ok: boolean) {
 
 function field<T extends HTMLElement>(id: string): T {
   return document.getElementById(id) as T;
+}
+
+/**
+ * What the page says about site access, and the button that changes it — G1.10.
+ *
+ * The verdict and the sentence come from `src/ui/site-access.ts`, which is also what the service worker
+ * consults, so a page reading "Active" cannot coexist with a worker refusing to read the page. The
+ * grant is requested **here** rather than through the worker: `chrome.permissions.request` only answers
+ * to a gesture in the page that asks, and a gesture does not survive a message hop, so routing this
+ * through the router would turn one click into a silent no-op.
+ *
+ * A refused request is reported as a refusal and not as a failure of the extension — the user is
+ * allowed to decline a browser prompt. The verdict is re-read either way, so it always describes the
+ * browser as it is now rather than as the click intended it to be.
+ */
+async function refreshSiteAccess(): Promise<void> {
+  const state = document.getElementById("site-access-state") as HTMLElement | null;
+  const button = document.getElementById("btn-grant-sites") as HTMLButtonElement | null;
+  if (!state || !button) return;
+
+  const origins = declaredOrigins();
+  const allowed = await queryAllowedOrigins(origins);
+  const [sentence, ok] = describeSiteAccess(origins, allowed);
+
+  state.textContent = sentence;
+  state.className = `report ${ok ? "ok" : "err"}`;
+  /**
+   * The button stays available once everything is allowed. A complete list can still be revoked from
+   * the browser's own extension settings, and the only other feedback there is a `!` badge the user
+   * would have to interpret; offering the re-grant is cheaper than explaining the badge.
+   */
+  button.textContent = ok ? "Re-grant these AI chat sites" : "Allow these AI chat sites";
+}
+
+/**
+ * Ask the browser for the declared origins.
+ *
+ * The whole list goes in one call so the user sees one prompt rather than six. Its answer is not
+ * trusted as the verdict — the browser may grant part of a list — so the page re-reads the real state
+ * afterwards and reports that instead of the boolean.
+ */
+async function grantSiteAccess(): Promise<void> {
+  const origins = declaredOrigins();
+  if (origins.length === 0) return;
+
+  const granted = await chrome.permissions.request({ origins });
+  await refreshSiteAccess();
+
+  if (!granted) {
+    showStatus(
+      "The browser declined that request. Nothing changed, and nothing is captured until the sites are allowed.",
+      false
+    );
+  }
 }
 
 /**
@@ -292,6 +347,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const s = { ...DEFAULT_SETTINGS, ...(res.data ?? {}) };
   fillForm(s);
   persistedApiUrl = s.apiUrl;
+
+  await refreshSiteAccess();
+  field<HTMLButtonElement>("btn-grant-sites").addEventListener("click", () => {
+    void grantSiteAccess();
+  });
 
   field<HTMLFormElement>("settings-form").addEventListener("submit", async (e) => {
     e.preventDefault();

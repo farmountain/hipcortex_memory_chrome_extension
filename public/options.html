@@ -43,7 +43,13 @@
 
       <div class="field checkbox">
         <input id="autoCapture" type="checkbox" />
-        <label for="autoCapture">Auto-capture page visits (experimental)</label>
+        <label for="autoCapture">Capture conversations automatically as I read them</label>
+        <p class="hint">
+          On by default. This decides whether HipCortex watches the AI chat pages you are already
+          reading — it does not send anything anywhere new, and nothing is captured from a site you
+          have not allowed below. Turn it off here or from the toolbar popup to stop automatic
+          captures; the toolbar button still captures one conversation when you ask it to.
+        </p>
       </div>
 
       <div class="field checkbox">
@@ -63,6 +69,19 @@
     </form>
 
     <div id="status" class="status"></div>
+
+    <section id="site-access">
+      <h2>Which sites HipCortex may read</h2>
+      <p class="subtitle">
+        HipCortex can only read a conversation on a site you have allowed it to read. Nothing is
+        captured from a site that is not allowed, and the toolbar icon shows a <strong>!</strong>
+        until every one of them is.
+      </p>
+      <div class="actions">
+        <button type="button" id="btn-grant-sites" class="primary">Allow these AI chat sites</button>
+      </div>
+      <div id="site-access-state" class="report" role="status" aria-live="polite"></div>
+    </section>
 
     <section id="migration">
       <h2>Move records between cores</h2>

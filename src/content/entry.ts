@@ -26,6 +26,8 @@
 import type { MessageResponse, MessageType } from "../types/index.js";
 import { byUrl } from "../capture/providers/registry.js";
 import type { ExtractResult } from "../capture/providers/types.js";
+import { isFlushCaptureRequest } from "../capture/flush.js";
+import type { FlushCaptureReply } from "../capture/flush.js";
 import { registerContextPlacement } from "../inject/host.js";
 
 /** Trailing debounce for DOM mutations. Long enough to coalesce streaming, short enough to settle. */
@@ -54,6 +56,16 @@ export interface ContentSession {
   /** Arrange a debounced `flush`. Called by the observer and available for manual triggers. */
   readonly schedule: () => void;
   readonly stop: () => void;
+  /**
+   * Extract once and hand the result back, for a capture the user asked for by name (G1.12).
+   *
+   * It deliberately does not consult or advance `signature`, and it does not send. Both omissions are
+   * the feature: a user who clicks "Capture this conversation" on a page that has not changed since
+   * the last observation is asking for this conversation, and the passive path's rule that a settled
+   * mutation which changed nothing sends nothing must not turn their click into silence. The worker
+   * decides what to do with the result — this returns perception, and perception is all it is.
+   */
+  readonly capture: () => FlushCaptureReply;
 }
 
 /**
@@ -141,6 +153,35 @@ export function startContentCapture(deps: ContentDeps = {}): ContentSession {
     }, debounceMs);
   };
 
+  /**
+   * Read the page once, for the user's own click (G1.12). Synchronous by design: extraction is the
+   * only step here that touches the DOM, and it has to happen while the user's click is still the
+   * reason it happened. Awaiting anything first would put a promise between the click and the read
+   * for no gain, and the one caller — the message handler below — answers in the same turn either way.
+   */
+  function capture(): FlushCaptureReply {
+    const pageUrl = url();
+    const adapter = byUrl(pageUrl);
+    if (!adapter) return { status: "unsupported", url: pageUrl };
+
+    const pageTitle = title();
+    const result = adapter.extract({
+      document: doc(),
+      url: pageUrl,
+      title: pageTitle.length > 0 ? pageTitle : undefined,
+      capturedAt: now().toISOString(),
+    });
+
+    if (result.ok) return { status: "captured", providerId: adapter.id, url: pageUrl, result };
+    return {
+      status: "failed",
+      providerId: adapter.id,
+      url: pageUrl,
+      code: result.code,
+      detail: result.detail,
+    };
+  }
+
   const observer =
     deps.observe === false
       ? null
@@ -151,6 +192,7 @@ export function startContentCapture(deps: ContentDeps = {}): ContentSession {
 
   return {
     flush,
+    capture,
     schedule,
     stop(): void {
       stopped = true;
@@ -173,7 +215,7 @@ function isContentScriptContext(): boolean {
 }
 
 if (isContentScriptContext()) {
-  startContentCapture();
+  const session = startContentCapture();
   /**
    * The second thing the page does, from the same gate: answer a placement request (G4.5).
    *
@@ -183,4 +225,19 @@ if (isContentScriptContext()) {
    * to the page, and it writes nothing until the worker asks it to.
    */
   registerContextPlacement();
+
+  /**
+   * The third: answer a capture flush (G1.12).
+   *
+   * It returns `false` for every message that is not a flush, which is what lets the placement
+   * listener above and this one coexist — a `false` from every listener means nobody answered, and a
+   * message that did match is answered exactly once. It never decides *whether* to capture: the worker
+   * asks only after the user clicked, so a request that arrives here is one the user already asked
+   * for, and the answer is always a `status` rather than nothing.
+   */
+  chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
+    if (!isFlushCaptureRequest(message)) return false;
+    sendResponse(session.capture());
+    return true;
+  });
 }

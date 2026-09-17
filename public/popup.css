@@ -166,8 +166,8 @@ footer {
   padding: 10px;
 }
 .capture-status.attention { border-color: var(--error); }
-.capture-row { display: flex; gap: 8px; justify-content: space-between; font-size: 12px; }
-.capture-label { color: var(--muted); }
+.capture-row { display: flex; gap: 8px; justify-content: space-between; font-size: 12px; align-items: center; }
+.capture-label { color: var(--muted); display: flex; align-items: center; gap: 6px; cursor: pointer; }
 .capture-value { font-variant-numeric: tabular-nums; }
 .capture-value.attention { color: var(--error); font-weight: 600; }
 .capture-paused { color: var(--error); font-size: 12px; margin-top: 8px; }
@@ -176,6 +176,20 @@ footer {
 /* The user's exit from a backlog that cannot be delivered (G4.1). */
 .capture-export { width: 100%; margin-top: 8px; }
 .capture-export-note { color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+/*
+ * The three states of a capture outcome, coloured so the distinction survives a glance.
+ *
+ * `.pending` exists on its own because a capture that was read and queued is neither a success nor a
+ * failure: the runtime has not acknowledged it yet. Rendering it green would claim a stored memory the
+ * core has not accepted, and rendering it red would report a working retry as an error.
+ */
+.capture-export-note.ok { color: var(--success); }
+.capture-export-note.pending { color: var(--accent); }
+.capture-export-note.err { color: var(--error); }
+
+.conversation-capture { margin-bottom: 10px; }
+.conversation-capture button { width: 100%; }
 
 /* ---------- Persistent failure line ---------- */
 .error-line { color: var(--error); font-size: 12px; margin-top: 6px; }

@@ -1,4 +1,4 @@
-# Tasks — CortexBridge Perception Layer
+# Tasks �?CortexBridge Perception Layer
 
 Verification convention: every task is "done" only when its verification command has been run
 and its output recorded. `npm test` at group boundaries runs the full suite; `npx tsc --noEmit`
@@ -13,17 +13,17 @@ of this change; a criterion cited here that does not exist in `docs/END-STATE.md
 actually executed against a live runtime. Do not reintroduce an endpoint that document does not
 list.
 
-## 1. Harness and gates (blocking — nothing after this may be claimed until green)
+## 1. Harness and gates (blocking �?nothing after this may be claimed until green)
 
 - [x] 1.1 Run `npm install` and confirm `node_modules/` exists; record the exit code
-- [x] 1.2 Add a Vitest configuration with a `node` project and a `jsdom` project, and set `passWithNoTests: false` — *G6.3*, `tests/harness.spec.ts`
-- [x] 1.3 Add a first committed spec asserting the test environment boots; verify `npm test` exits 0 with — passing test — *G6.3*, `tests/harness.spec.ts`
+- [x] 1.2 Add a Vitest configuration with a `node` project and a `jsdom` project, and set `passWithNoTests: false` �?*G6.3*, `tests/harness.spec.ts`
+- [x] 1.3 Add a first committed spec asserting the test environment boots; verify `npm test` exits 0 with �? passing test �?*G6.3*, `tests/harness.spec.ts`
 - [x] 1.4 Add an ESLint flat config covering TypeScript sources with type-aware parsing disabled for speed; verify `npm run lint` exits 0
 - [x] 1.5 Update the `lint` script to reference the flat config and lint `src` plus `tests`
-- [x] 1.6 Implement the `scanSource()` test helper that enumerates every file under `src/` and returns `{ path, content }` entries — *G6.5*, `tests/helpers/scan.ts`
-- [x] 1.7 Add a spec proving `scanSource()` covers the full `src/` tree and that violations report file path plus matched text — *G6.5*, `tests/quality/source-scans.spec.ts`
+- [x] 1.6 Implement the `scanSource()` test helper that enumerates every file under `src/` and returns `{ path, content }` entries �?*G6.5*, `tests/helpers/scan.ts`
+- [x] 1.7 Add a spec proving `scanSource()` covers the full `src/` tree and that violations report file path plus matched text �?*G6.5*, `tests/quality/source-scans.spec.ts`
 - [x] 1.8 Add `scripts/clean.js` using `fs.rmSync(dist, { recursive: true, force: true })`; point the `clean` script at it
-- [x] 1.9 Verify `npm run clean` exits 0 under PowerShell and is idempotent when run twice — *G6.6*; record that the POSIX leg is unverified in this environment
+- [x] 1.9 Verify `npm run clean` exits 0 under PowerShell and is idempotent when run twice �?*G6.6*; record that the POSIX leg is unverified in this environment
 - [x] 1.10 Add `scripts/package.js` that uses `zip` on POSIX and PowerShell `Compress-Archive` on Windows, failing with a message naming the missing tool; point the `package` script at it
 - [x] 1.11 Add `dist/` to `.gitignore` and untrack the committed build output (`git rm -r --cached dist`)
 - [x] 1.12 Add a `tests/helpers/chrome-mock.ts` exposing `storage.sync|local|session`, `runtime.sendMessage|lastError|connectNative`, `alarms`, `contextMenus`, `action`, and `sidePanel`
@@ -34,8 +34,8 @@ list.
 ## 2. Positioning and documentation
 
 - [x] 2.1 Rewrite `README.md` around the perception/cognition boundary and the two modes; remove the "install HipCortex first" prerequisite for Consumer Mode
-- [x] 2.2 Add `docs/ARCHITECTURE.md` describing CortexBridge as the sensory layer, with the capture — normalize — forward — queue flow and an explicit non-goals list
-- [x] 2.3 Complete `docs/PROTOCOL.md` — it already pins the verified contract; add the native host name `com.hipcortex.bridge`, the `SCHEMA_VERSION`, and the native framing section as the *assumed* parts — *G5.2*
+- [x] 2.2 Add `docs/ARCHITECTURE.md` describing CortexBridge as the sensory layer, with the capture �?normalize �?forward �?queue flow and an explicit non-goals list
+- [x] 2.3 Complete `docs/PROTOCOL.md` �?it already pins the verified contract; add the native host name `com.hipcortex.bridge`, the `SCHEMA_VERSION`, and the native framing section as the *assumed* parts �?*G5.2*
 - [x] 2.4 Record the `rootDir` decision (`src/schema/`, no config change) in `docs/PROTOCOL.md` with the rejected alternative
 - [x] 2.5 Rewrite `docs/REQUIREMENTS.md` to reference the acceptance criteria in this change rather than duplicating them
 - [x] 2.6 Update `public/manifest.json` `description` and `name`/`short_name` so the product surface reads "HipCortex" while the repo identity is CortexBridge
@@ -47,116 +47,116 @@ list.
 
 - [x] 3.1 Create `src/schema/version.ts` exporting `SCHEMA_VERSION = 1` as a literal type plus the supported-versions list
 - [x] 3.2 Create `src/schema/conversation.ts` defining `Conversation`, `Message`, `Attachment` with the role union and contiguous `index`
-- [x] 3.3 Create `src/schema/capture-event.ts` defining `CaptureEvent` and `Provenance`. **`Provenance` carries exactly** `schemaVersion`, `provider`, `adapterVersion`, `source`, `conversationUrl`, `capturedAt`; `eventId` lives on `CaptureEvent` — *G3.1*, *G5.1*
+- [x] 3.3 Create `src/schema/capture-event.ts` defining `CaptureEvent` and `Provenance`. **`Provenance` carries exactly** `schemaVersion`, `provider`, `adapterVersion`, `source`, `conversationUrl`, `capturedAt`; `eventId` lives on `CaptureEvent` �?*G3.1*, *G5.1*
 - [x] 3.4 Create `src/schema/validate.ts` implementing `validateCaptureEvent()` returning `{ valid, errors: { path, code }[] }` with codes `REQUIRED`, `INVALID_TIMESTAMP`, `UNSUPPORTED_VERSION`, `EMPTY_CONVERSATION`
 - [x] 3.5 Create `src/schema/index.ts` re-exporting the public contract surface
-- [x] 3.6 Add a spec table covering — valid and — invalid events, asserting the exact `path` and `code` for each error
+- [x] 3.6 Add a spec table covering �? valid and �? invalid events, asserting the exact `path` and `code` for each error
 - [x] 3.7 Add a spec proving validation never throws for `null`, a string, and an object missing required sections
 - [x] 3.8 Add a spec asserting a six-message conversation round-trips through JSON with roles, indices and order unchanged
-- [x] 3.9 Add specs for `capturedAt`: ISO-8601 UTC with `Z` passes; local time and unparseable values fail with `INVALID_TIMESTAMP` — *G3.1*, `tests/schema/validate.spec.ts`
-- [x] 3.10 Define `RESERVED_PROVENANCE_KEY = "hipcortex.capture"` as a **module constant** plus the versioned object shape it holds, and add a spec asserting the outbound payload carries separate `schemaVersion`, `provider`, `adapterVersion`, `source`, `conversationUrl`, `eventId` and `capturedAt` entries under exactly that key — *G3.1*, `tests/schema/egress.spec.ts`
-- [x] 3.11 Add a spec asserting provider identity is never conveyed only as free text, that the reserved object carries its own `schemaVersion`, and that provenance round-trips through a provider-filtered retrieval — *G3.1*, `tests/schema/egress.spec.ts`
-- [x] 3.12 Create `src/schema/egress.ts` mapping a validated `CaptureEvent` onto the runtime's add fields (`actor`, `action = capture:<providerId>`, `record_type = Perception`, `source = cortexbridge`, `target`, `tags`, `metadata`), and add specs asserting the mapping and asserting **no** `ttl_seconds` key is emitted — *G5.3*, `tests/schema/egress.spec.ts`
-- [x] 3.13 Add a spec asserting a rejected event's stored diagnostic contains no message text, no `target` text and no event body — *G2.10*, `tests/schema/validate.spec.ts`
-- [x] 3.14 Gate check: record output of `npx tsc --noEmit`, `npm run lint`, `npm test` — *G6.1*
+- [x] 3.9 Add specs for `capturedAt`: ISO-8601 UTC with `Z` passes; local time and unparseable values fail with `INVALID_TIMESTAMP` �?*G3.1*, `tests/schema/validate.spec.ts`
+- [x] 3.10 Define `RESERVED_PROVENANCE_KEY = "hipcortex.capture"` as a **module constant** plus the versioned object shape it holds, and add a spec asserting the outbound payload carries separate `schemaVersion`, `provider`, `adapterVersion`, `source`, `conversationUrl`, `eventId` and `capturedAt` entries under exactly that key �?*G3.1*, `tests/schema/egress.spec.ts`
+- [x] 3.11 Add a spec asserting provider identity is never conveyed only as free text, that the reserved object carries its own `schemaVersion`, and that provenance round-trips through a provider-filtered retrieval �?*G3.1*, `tests/schema/egress.spec.ts`
+- [x] 3.12 Create `src/schema/egress.ts` mapping a validated `CaptureEvent` onto the runtime's add fields (`actor`, `action = capture:<providerId>`, `record_type = Perception`, `source = cortexbridge`, `target`, `tags`, `metadata`), and add specs asserting the mapping and asserting **no** `ttl_seconds` key is emitted �?*G5.3*, `tests/schema/egress.spec.ts`
+- [x] 3.13 Add a spec asserting a rejected event's stored diagnostic contains no message text, no `target` text and no event body �?*G2.10*, `tests/schema/validate.spec.ts`
+- [x] 3.14 Gate check: record output of `npx tsc --noEmit`, `npm run lint`, `npm test` �?*G6.1*
 
 ## 4. Transport layer (`transport-layer`)
 
-- [x] 4.1 Create `src/api/transport/types.ts` defining `Transport`, `SearchOptions`, `SendResult` and `TransportMode` — *G3.3*
-- [x] 4.2 Create `src/api/transport/http.ts` by moving `HipCortexClient` logic behind the `Transport` interface, **replacing the historical endpoint ladders with the verified surface in `docs/PROTOCOL.md`** — capture egress is `POST /memory/add` only — *G5.3*, *G6.1*
-- [x] 4.3 Port the client behavior into specs against the verified surface: 404 advancing where a ladder still exists, plain-`ok` and JSON `/health`, unreachable — `{ healthy: false }`, auth headers applied — *G6.1*, `tests/api/transport.spec.ts`
-- [x] 4.4 Add specs asserting `POST /memory/add` is the capture target and that `/memory/ingest` is never referenced — *G5.5*, `tests/api/transport.spec.ts`
-- [x] 4.5 Implement the **positive acknowledgement rule**: a delivery is acknowledged only when the body parses to `success === true` and carries a non-empty `record_id`; add specs for the ack case, the bare-2xx-without-`record_id` failure case, and the non-empty `warning` case that must still succeed — *G2.9*, *G5.3*, `tests/api/transport.spec.ts`
-- [x] 4.6 Add a spec asserting `addMemory` rejects with the last failure when no endpoint works — *G6.1*, `tests/api/transport.spec.ts`
+- [x] 4.1 Create `src/api/transport/types.ts` defining `Transport`, `SearchOptions`, `SendResult` and `TransportMode` �?*G3.3*
+- [x] 4.2 Create `src/api/transport/http.ts` by moving `HipCortexClient` logic behind the `Transport` interface, **replacing the historical endpoint ladders with the verified surface in `docs/PROTOCOL.md`** �?capture egress is `POST /memory/add` only �?*G5.3*, *G6.1*
+- [x] 4.3 Port the client behavior into specs against the verified surface: 404 advancing where a ladder still exists, plain-`ok` and JSON `/health`, unreachable �?`{ healthy: false }`, auth headers applied �?*G6.1*, `tests/api/transport.spec.ts`
+- [x] 4.4 Add specs asserting `POST /memory/add` is the capture target and that `/memory/ingest` is never referenced �?*G5.5*, `tests/api/transport.spec.ts`
+- [x] 4.5 Implement the **positive acknowledgement rule**: a delivery is acknowledged only when the body parses to `success === true` and carries a non-empty `record_id`; add specs for the ack case, the bare-2xx-without-`record_id` failure case, and the non-empty `warning` case that must still succeed �?*G2.9*, *G5.3*, `tests/api/transport.spec.ts`
+- [x] 4.6 Add a spec asserting `addMemory` rejects with the last failure when no endpoint works �?*G6.1*, `tests/api/transport.spec.ts`
 - [x] 4.7 Create `src/api/transport/native.ts` implementing `NativeTransport` over `chrome.runtime.connectNative("com.hipcortex.bridge")`, reading `chrome.runtime.lastError` after each operation
 - [x] 4.8 Add specs for `NativeTransport` using a mocked `connectNative`: success resolves, host-unavailable produces a typed unavailable result without throwing
-- [x] 4.9 Create `src/api/transport/factory.ts` resolving `auto` (native first, HTTP fallback), `consumer` (native only, no silent fallback) and `developer` (HTTP only, no native attempt) — *G7.3*
-- [x] 4.10 Add specs for all three modes plus the two fallback rules and the "explicit consumer does not fall back" rule — *G7.3*
-- [x] 4.11 Refuse a non-loopback base URL in `auto` and `consumer` modes, reporting an error naming the host and performing no request — *G7.3*, `tests/api/transport.spec.ts`
-- [x] 4.12 Add `transportMode` to `ExtensionSettings` and `DEFAULT_SETTINGS` with default `"auto"` — *G6.5*
+- [x] 4.9 Create `src/api/transport/factory.ts` resolving `auto` (native first, HTTP fallback), `consumer` (native only, no silent fallback) and `developer` (HTTP only, no native attempt) �?*G7.3*
+- [x] 4.10 Add specs for all three modes plus the two fallback rules and the "explicit consumer does not fall back" rule �?*G7.3*
+- [x] 4.11 Refuse a non-loopback base URL in `auto` and `consumer` modes, reporting an error naming the host and performing no request �?*G7.3*, `tests/api/transport.spec.ts`
+- [x] 4.12 Add `transportMode` to `ExtensionSettings` and `DEFAULT_SETTINGS` with default `"auto"` �?*G6.5*
 - [x] 4.13 Migrate `src/background.ts` from `HipCortexClient.fromSettings()` to the transport factory; keep every existing message type behavior equivalent
-- [x] 4.14 Add `nativeMessaging` and `alarms` to manifest `permissions` — *G6.5* (nativeMessaging done; alarms deferred to 6.10 where chrome.alarms is introduced - see 9.4)
-- [x] 4.15 Add a spec asserting no file under `src/` outside `src/api/` contains `fetch(` or `connectNative` — *G6.5*, `tests/quality/source-scans.spec.ts`
-- [x] 4.16 Split retrieval into `search(query, options?)` (semantic, `POST /memory/search`) and `queryStructured(options)` (`GET /memory/query`). Resolve `providerFilter` to `action = capture:<providerId>` **and** `record_type = Perception` on the structured path — *G3.3*, *G3.4*
-- [x] 4.17 Add specs for the structured path: filter transmission, exclusion of other providers, empty-but-successful result for an uncaptured provider, and a reported limitation when semantic search is combined with a provider filter — *G3.4*, *G3.5*, *G3.6*, `tests/api/transport.spec.ts`
-- [x] 4.18 **Unwrap `{score, record}`** on the semantic path: expose `record` with `score` as a discrete optional field, and raise a typed error when a member has no `record` member — *G3.2*, `tests/api/transport.spec.ts`
-- [x] 4.19 Add a source-scan spec asserting `GET /memory/search-flat` is not used by any provenance-aware read path — *G3.8*, `tests/quality/source-scans.spec.ts`
-- [x] 4.20 Add a spec asserting returned records expose provider provenance as a discrete field — *G3.1*, `tests/api/transport.spec.ts`
-- [x] 4.21 Gate check: record output of `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` — *G6.1*
+- [x] 4.14 Add `nativeMessaging` and `alarms` to manifest `permissions` �?*G6.5* (nativeMessaging done; alarms deferred to 6.10 where chrome.alarms is introduced - see 9.4)
+- [x] 4.15 Add a spec asserting no file under `src/` outside `src/api/` contains `fetch(` or `connectNative` �?*G6.5*, `tests/quality/source-scans.spec.ts`
+- [x] 4.16 Split retrieval into `search(query, options?)` (semantic, `POST /memory/search`) and `queryStructured(options)` (`GET /memory/query`). Resolve `providerFilter` to `action = capture:<providerId>` **and** `record_type = Perception` on the structured path �?*G3.3*, *G3.4*
+- [x] 4.17 Add specs for the structured path: filter transmission, exclusion of other providers, empty-but-successful result for an uncaptured provider, and a reported limitation when semantic search is combined with a provider filter �?*G3.4*, *G3.5*, *G3.6*, `tests/api/transport.spec.ts`
+- [x] 4.18 **Unwrap `{score, record}`** on the semantic path: expose `record` with `score` as a discrete optional field, and raise a typed error when a member has no `record` member �?*G3.2*, `tests/api/transport.spec.ts`
+- [x] 4.19 Add a source-scan spec asserting `GET /memory/search-flat` is not used by any provenance-aware read path �?*G3.8*, `tests/quality/source-scans.spec.ts`
+- [x] 4.20 Add a spec asserting returned records expose provider provenance as a discrete field �?*G3.1*, `tests/api/transport.spec.ts`
+- [x] 4.21 Gate check: record output of `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` �?*G6.1*
 
 ## 5. Provider adapter seam (`capture-providers`)
 
-- [x] 5.1 Create `src/capture/providers/types.ts` defining `ProviderAdapter` (`id`, `displayName`, `adapterVersion`, `verifiedAt`, `ladders`, `landmarks`, `matches`, `extract`), `ExtractInput`, `ExtractResult` and the `ExtractErrorCode` union **including `DOM_SHAPE_UNRECOGNIZED`** — *G8.1*, *G8.3*
+- [x] 5.1 Create `src/capture/providers/types.ts` defining `ProviderAdapter` (`id`, `displayName`, `adapterVersion`, `verifiedAt`, `ladders`, `landmarks`, `matches`, `extract`), `ExtractInput`, `ExtractResult` and the `ExtractErrorCode` union **including `DOM_SHAPE_UNRECOGNIZED`** �?*G8.1*, *G8.3*
 - [x] 5.2 Create `src/capture/providers/registry.ts` with a single registration point, `byId()` and `byUrl()`
-- [x] 5.3 Create `src/capture/providers/chatgpt.ts` with an **ordered selector ladder per slot** (conversation root, turn container, message text, role signal), declared `landmarks`, `adapterVersion` and `verifiedAt` — *G8.1*, *G8.2*
-- [x] 5.4 Implement the structural pre-check and the cardinality check in the shared extraction helper: a missing landmark returns `DOM_SHAPE_UNRECOGNIZED` **before any message text is read**, and observed turn-container count must equal produced message count — *G8.3*, *G8.8*
-- [x] 5.5 Record which ladder rung satisfied each slot and return it as `rungs` on success — *G8.2*
-- [x] 5.6 Add redacted fixtures `tests/fixtures/chatgpt/conversation.html` (— messages, — roles), one fixture **per ladder rung**, and `tests/fixtures/chatgpt/unknown-shape.html` — *G8.5*
-- [x] 5.7 Add `tests/capture/providers/chatgpt.spec.ts` covering canonical URL match, alternate subdomain match, unrelated URL non-match, successful extraction with complete provenance and reported `rungs`, each ladder rung selected by its fixture, and a typed `DOM_SHAPE_UNRECOGNIZED` failure on the unknown-shape fixture — *G1.2*, *G1.3*, *G1.5*, *G8.2*, *G8.3*, *G8.5*
-- [x] 5.8 Add a spec asserting extraction is side-effect free by comparing fixture DOM serialization before and after `extract()` — *G1.6*
-- [x] 5.9 Add a spec asserting a typed extraction failure results in zero transport calls — *G1.4*
-- [x] 5.10 Add a spec asserting no code path produces a partially-populated conversation as a success — *G8.7*, *G1.4*
-- [x] 5.11 Add a spec asserting a zero-message extraction yields a typed failure rather than an empty success — *G7.6*
-- [x] 5.12 Add a spec asserting no adapter imports another adapter, and that the registry returns exactly one adapter for a provider URL and none for an unsupported URL — *G1.1*
-- [x] 5.13 Add a source-scan spec asserting no provider hostname or provider selector appears in `src/background.ts` or under `src/api/` — *G1.8*
-- [x] 5.14 Add a source-scan spec asserting **no** selector, landmark or adapter configuration is fetched from the network or read from `chrome.storage` — *G8.4*
-- [x] 5.15 Add a spec asserting extraction behaves identically with the network unavailable — *G8.9*
-- [x] 5.16 Gate check: record output of `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` — *G6.1*
+- [x] 5.3 Create `src/capture/providers/chatgpt.ts` with an **ordered selector ladder per slot** (conversation root, turn container, message text, role signal), declared `landmarks`, `adapterVersion` and `verifiedAt` �?*G8.1*, *G8.2*
+- [x] 5.4 Implement the structural pre-check and the cardinality check in the shared extraction helper: a missing landmark returns `DOM_SHAPE_UNRECOGNIZED` **before any message text is read**, and observed turn-container count must equal produced message count �?*G8.3*, *G8.8*
+- [x] 5.5 Record which ladder rung satisfied each slot and return it as `rungs` on success �?*G8.2*
+- [x] 5.6 Add redacted fixtures `tests/fixtures/chatgpt/conversation.html` (�? messages, �? roles), one fixture **per ladder rung**, and `tests/fixtures/chatgpt/unknown-shape.html` �?*G8.5*
+- [x] 5.7 Add `tests/capture/providers/chatgpt.spec.ts` covering canonical URL match, alternate subdomain match, unrelated URL non-match, successful extraction with complete provenance and reported `rungs`, each ladder rung selected by its fixture, and a typed `DOM_SHAPE_UNRECOGNIZED` failure on the unknown-shape fixture �?*G1.2*, *G1.3*, *G1.5*, *G8.2*, *G8.3*, *G8.5*
+- [x] 5.8 Add a spec asserting extraction is side-effect free by comparing fixture DOM serialization before and after `extract()` �?*G1.6*
+- [x] 5.9 Add a spec asserting a typed extraction failure results in zero transport calls �?*G1.4*
+- [x] 5.10 Add a spec asserting no code path produces a partially-populated conversation as a success �?*G8.7*, *G1.4*
+- [x] 5.11 Add a spec asserting a zero-message extraction yields a typed failure rather than an empty success �?*G7.6*
+- [x] 5.12 Add a spec asserting no adapter imports another adapter, and that the registry returns exactly one adapter for a provider URL and none for an unsupported URL �?*G1.1*
+- [x] 5.13 Add a source-scan spec asserting no provider hostname or provider selector appears in `src/background.ts` or under `src/api/` �?*G1.8*
+- [x] 5.14 Add a source-scan spec asserting **no** selector, landmark or adapter configuration is fetched from the network or read from `chrome.storage` �?*G8.4*
+- [x] 5.15 Add a spec asserting extraction behaves identically with the network unavailable �?*G8.9*
+- [x] 5.16 Gate check: record output of `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` �?*G6.1*
 
 ## 6. Capture pipeline (`capture-pipeline`)
 
-- [x] 6.1 Create `src/capture/normalize/normalize.ts` converting an `ExtractResult` success into a validated `CaptureEvent` with `eventId`, `capturedAt` and provenance stamped — *G1.5*
-- [x] 6.2 Create `src/capture/queue/queue.ts` implementing FIFO storage in `chrome.storage.local` under one key, **removal only on acknowledged delivery**, a reported `paused` state at the spill limit with **no automatic discard and no loss counter at all**, and `nextAttemptAt` backoff `min(2000 * 2^attempts, 300000)` — *G2.1*, *G2.2*, *G2.5*
-- [x] 6.3 Add specs for the queue: enqueue on failure, acknowledgement removes only the acknowledged entry, **no entry discarded at the spill limit and no loss counter exists**, FIFO drain order, monotonic capped backoff, persisted `nextAttemptAt`, and no conversation content in `chrome.storage.sync` — *G2.1*, *G2.2*, *G2.4*, *G2.5*, *G2.7*
-- [x] 6.4 Add a spec asserting a 2xx response carrying no `record_id` leaves the entry unacknowledged — *G2.9*
-- [x] 6.5 Add a spec asserting the queue drains regardless of the value of `autoCapture`, so toggling it mid-flight loses nothing — *G7.5*
-- [x] 6.6 Create `src/capture/pipeline.ts` wiring extract — validate — send — enqueue-on-failure, with the guard that an invalid event never reaches the transport — *G2.10*
-- [x] 6.7 Add a spec asserting the transport spy records zero calls for an invalid event and that the failure is recorded with a validation reason — *G2.10*
-- [x] 6.8 Add a failure log whose records hold **only** `{ timestamp, path, code, providerId }`, with a distinguishable `validation` vs `transport` reason and a bound — add specs for both reasons, for the bound, and for the assertion that no record contains message text, `target` text or an event body — *G2.10*, `tests/capture/failures.spec.ts`
-- [x] 6.9 Produce a user-visible message naming the unacknowledged count and stating that capture is paused when the spill limit is reached — *G2.3*, `tests/capture/queue.spec.ts`
-- [x] 6.10 Create `src/capture/lifecycle.ts` registering `chrome.alarms` for the drain, plus drains on `onStartup` and after a successful send — *G2.6*
-- [x] 6.11 Add specs asserting a drain is attempted on worker start with due entries, and that the backoff schedule survives a simulated worker restart — *G2.6*
+- [x] 6.1 Create `src/capture/normalize/normalize.ts` converting an `ExtractResult` success into a validated `CaptureEvent` with `eventId`, `capturedAt` and provenance stamped �?*G1.5*
+- [x] 6.2 Create `src/capture/queue/queue.ts` implementing FIFO storage in `chrome.storage.local` under one key, **removal only on acknowledged delivery**, a reported `paused` state at the spill limit with **no automatic discard and no loss counter at all**, and `nextAttemptAt` backoff `min(2000 * 2^attempts, 300000)` �?*G2.1*, *G2.2*, *G2.5*
+- [x] 6.3 Add specs for the queue: enqueue on failure, acknowledgement removes only the acknowledged entry, **no entry discarded at the spill limit and no loss counter exists**, FIFO drain order, monotonic capped backoff, persisted `nextAttemptAt`, and no conversation content in `chrome.storage.sync` �?*G2.1*, *G2.2*, *G2.4*, *G2.5*, *G2.7*
+- [x] 6.4 Add a spec asserting a 2xx response carrying no `record_id` leaves the entry unacknowledged �?*G2.9*
+- [x] 6.5 Add a spec asserting the queue drains regardless of the value of `autoCapture`, so toggling it mid-flight loses nothing �?*G7.5*
+- [x] 6.6 Create `src/capture/pipeline.ts` wiring extract �?validate �?send �?enqueue-on-failure, with the guard that an invalid event never reaches the transport �?*G2.10*
+- [x] 6.7 Add a spec asserting the transport spy records zero calls for an invalid event and that the failure is recorded with a validation reason �?*G2.10*
+- [x] 6.8 Add a failure log whose records hold **only** `{ timestamp, path, code, providerId }`, with a distinguishable `validation` vs `transport` reason and a bound �?add specs for both reasons, for the bound, and for the assertion that no record contains message text, `target` text or an event body �?*G2.10*, `tests/capture/failures.spec.ts`
+- [x] 6.9 Produce a user-visible message naming the unacknowledged count and stating that capture is paused when the spill limit is reached �?*G2.3*, `tests/capture/queue.spec.ts`
+- [x] 6.10 Create `src/capture/lifecycle.ts` registering `chrome.alarms` for the drain, plus drains on `onStartup` and after a successful send �?*G2.6*
+- [x] 6.11 Add specs asserting a drain is attempted on worker start with due entries, and that the backoff schedule survives a simulated worker restart �?*G2.6*
 - [x] 6.12 Create `src/content/entry.ts` as the content-script entry: resolve adapter via the registry, observe mutations with a debounce, and produce conversation-level updates
 - [x] 6.13 Add specs for change detection: a new message yields an updated event containing the full conversation; an unchanged mutation yields no event; rapid mutations are debounced
-- [x] 6.14 Add specs asserting **passive** capture is inert when `autoCapture` is false, that manual capture still works while it is false, and that unsupported pages select no adapter — *G1.7*
-- [x] 6.15 Implement the drift counter: N consecutive typed failures for one provider raises a "capture from `<provider>` needs updating" status naming the failing slot or rung, and a success clears it — *G8.6*, `tests/capture/drift.spec.ts`
-- [x] 6.16 Add the `esbuild` bundle step producing `dist/content.js` as an IIFE, and a spec asserting it contains no top-level `import` or `export` — *G6.4*
-- [x] 6.17 Register the content script in `public/manifest.json` with `matches` limited to supported provider hosts and `run_at: "document_idle"` — *G1.9*
-- [x] 6.18 Add router message types for capture status; keep `return true` for async handlers; add a spec asserting every declared `MessageType` has a handling case — *G6.5*
-- [x] 6.19 Gate check: record output of `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` — *G6.1*
+- [x] 6.14 Add specs asserting **passive** capture is inert when `autoCapture` is false, that manual capture still works while it is false, and that unsupported pages select no adapter �?*G1.7*
+- [x] 6.15 Implement the drift counter: N consecutive typed failures for one provider raises a "capture from `<provider>` needs updating" status naming the failing slot or rung, and a success clears it �?*G8.6*, `tests/capture/drift.spec.ts`
+- [x] 6.16 Add the `esbuild` bundle step producing `dist/content.js` as an IIFE, and a spec asserting it contains no top-level `import` or `export` �?*G6.4*
+- [x] 6.17 Register the content script in `public/manifest.json` with `matches` limited to supported provider hosts and `run_at: "document_idle"` �?*G1.9*
+- [x] 6.18 Add router message types for capture status; keep `return true` for async handlers; add a spec asserting every declared `MessageType` has a handling case �?*G6.5*
+- [x] 6.19 Gate check: record output of `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` �?*G6.1*
 
 ## 7. Remaining providers (`capture-providers`)
 
-Each of 7.1–7.4 adds: an adapter with a ladder per slot plus `landmarks`, `adapterVersion` and
+Each of 7.1�?.4 adds: an adapter with a ladder per slot plus `landmarks`, `adapterVersion` and
 `verifiedAt`; fixtures for every rung plus an unknown-shape fixture; and specs for the three
 `matches()` cases, extraction with `rungs`, rung coverage, the typed unknown-shape failure, and the
 cardinality check. Task 7.1 is the template the rest copy.
 
-- [x] 7.1 Add `src/capture/providers/claude.ts` with full ladder/landmark/fixture/spec coverage — *G8.1*–*G8.5*, `tests/capture/providers/claude.spec.ts`
-- [x] 7.2 Add `src/capture/providers/gemini.ts` with the same coverage — *G8.1*–*G8.5*, `tests/capture/providers/gemini.spec.ts`
-- [x] 7.3 Add `src/capture/providers/grok.ts` with the same coverage, and add the Grok host to `optional_host_permissions` — *G8.1*–*G8.5*, *G1.9*, `tests/capture/providers/grok.spec.ts`
-- [x] 7.4 Add `src/capture/providers/deepseek.ts` with the same coverage, and add the DeepSeek host to `optional_host_permissions` — *G8.1*–*G8.5*, *G1.9*, `tests/capture/providers/deepseek.spec.ts`
-- [x] 7.5 Register all five adapters in the registry (one line each) and add a spec asserting all five providers resolve by URL — *G1.1*
-- [x] 7.6 Add a spec asserting `optional_host_permissions` contains all five provider hosts and `host_permissions` contains none of them — *G1.9*
-- [x] 7.7 Add a spec asserting every adapter declares a `verifiedAt` that is not in the future — *G8.1*
-- [x] 7.8 Add adapter `match` patterns to the content-script manifest entry for all five providers — *G1.9*
-- [x] 7.9 Gate check: record output of `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` — *G6.1*
+- [x] 7.1 Add `src/capture/providers/claude.ts` with full ladder/landmark/fixture/spec coverage �?*G8.1*�?G8.5*, `tests/capture/providers/claude.spec.ts`
+- [x] 7.2 Add `src/capture/providers/gemini.ts` with the same coverage �?*G8.1*�?G8.5*, `tests/capture/providers/gemini.spec.ts`
+- [x] 7.3 Add `src/capture/providers/grok.ts` with the same coverage, and add the Grok host to `optional_host_permissions` �?*G8.1*�?G8.5*, *G1.9*, `tests/capture/providers/grok.spec.ts`
+- [x] 7.4 Add `src/capture/providers/deepseek.ts` with the same coverage, and add the DeepSeek host to `optional_host_permissions` �?*G8.1*�?G8.5*, *G1.9*, `tests/capture/providers/deepseek.spec.ts`
+- [x] 7.5 Register all five adapters in the registry (one line each) and add a spec asserting all five providers resolve by URL �?*G1.1*
+- [x] 7.6 Add a spec asserting `optional_host_permissions` contains all five provider hosts and `host_permissions` contains none of them �?*G1.9*
+- [x] 7.7 Add a spec asserting every adapter declares a `verifiedAt` that is not in the future �?*G8.1*
+- [x] 7.8 Add adapter `match` patterns to the content-script manifest entry for all five providers �?*G1.9*
+- [x] 7.9 Gate check: record output of `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` �?*G6.1*
 
 ## 8. Surfaces (`extension-surfaces`)
 
-- [x] 8.1 Add the transport mode control (`auto`/`consumer`/`developer`) to `public/options.html` and wire it in `src/options.ts` — *G7.3*
+- [x] 8.1 Add the transport mode control (`auto`/`consumer`/`developer`) to `public/options.html` and wire it in `src/options.ts` �?*G7.3*
 - [x] 8.2 Update the connection test to report the resolved mode and whether a fallback occurred
 - [x] 8.3 Update connection-test failure text to name the endpoint or native host that was tried
-- [x] 8.4 Require an explicit confirmation **naming the exact host** before a non-loopback base URL can be saved; add specs asserting the confirmation is required, and that declining leaves the previous value and makes no request — *G7.2*, `tests/options/remote-egress.spec.ts`
-- [x] 8.5 Add a persistent banner to popup and side panel naming the host while a non-loopback base URL is configured, with a spec asserting it appears for a non-loopback host and is absent for loopback — *G7.4*, `tests/surfaces/egress-banner.spec.ts`
-- [x] 8.6 Add a capture status area to the popup showing passive-capture on/off, queue length, the **unacknowledged count** and the **paused** flag, with a visual distinction for a non-zero unacknowledged count and an explicit paused message — *G2.3*, `tests/surfaces/capture-status.spec.ts`
-- [x] 8.7 Add a `CAPTURE_STATUS` message type and specs asserting the UI receives queue length, unacknowledged count and paused flag, and that no loss counter is displayed — *G2.3*, `tests/surfaces/capture-status.spec.ts`
+- [x] 8.4 Require an explicit confirmation **naming the exact host** before a non-loopback base URL can be saved; add specs asserting the confirmation is required, and that declining leaves the previous value and makes no request �?*G7.2*, `tests/options/remote-egress.spec.ts`
+- [x] 8.5 Add a persistent banner to popup and side panel naming the host while a non-loopback base URL is configured, with a spec asserting it appears for a non-loopback host and is absent for loopback �?*G7.4*, `tests/surfaces/egress-banner.spec.ts`
+- [x] 8.6 Add a capture status area to the popup showing passive-capture on/off, queue length, the **unacknowledged count** and the **paused** flag, with a visual distinction for a non-zero unacknowledged count and an explicit paused message �?*G2.3*, `tests/surfaces/capture-status.spec.ts`
+- [x] 8.7 Add a `CAPTURE_STATUS` message type and specs asserting the UI receives queue length, unacknowledged count and paused flag, and that no loss counter is displayed �?*G2.3*, `tests/surfaces/capture-status.spec.ts`
 - [x] 8.8 Preserve manual-capture input on failure and surface the failure reason; add specs for success clearing input and failure preserving it
-- [x] 8.9 Add settings specs: defaults fill missing keys including `transportMode: "auto"`, partial settings merge over defaults, save/read round-trip, and `pendingSearch` written to session rather than sync — *G2.7*
+- [x] 8.9 Add settings specs: defaults fill missing keys including `transportMode: "auto"`, partial settings merge over defaults, save/read round-trip, and `pendingSearch` written to session rather than sync �?*G2.7*
 - [x] 8.10 Add a spec asserting `injectIntoAiChats` defaults to `false` and that no provider DOM node is mutated while it is `false`
-- [x] 8.11 Add specs for the router: unknown message type returns `success: false` with the type named; async handlers keep the channel open — *G6.5*
-- [ ] 8.12 Manual gate: load unpacked from `dist/` and record results for popup online/offline, manual add, context-menu capture of a selection with page metadata, side panel opening via Ctrl+Shift+H, and options save plus test connection — *G6.4*
-- [ ] 8.13 Manual gate: with `autoCapture` enabled, open a supported provider conversation with — messages and record whether a capture event is produced without user interaction — *G1.7*
+- [x] 8.11 Add specs for the router: unknown message type returns `success: false` with the type named; async handlers keep the channel open �?*G6.5*
+- [ ] 8.12 Manual gate: load unpacked from `dist/` and record results for popup online/offline, manual add, context-menu capture of a selection with page metadata, side panel opening via Ctrl+Shift+H, and options save plus test connection �?*G6.4*
+- [ ] 8.13 Manual gate: with `autoCapture` enabled, open a supported provider conversation with �? messages and record whether a capture event is produced without user interaction �?*G1.7*
 
 Gate evidence for 8.1–8.11 (run 2026-09-14, Windows, Node v22.18.0):
 
@@ -178,21 +178,21 @@ signed in to the providers, and are recorded as open rather than inferred.
 
 ## 9. Production readiness (`quality-gates`)
 
-- [x] 9.1 Add a spec validating `dist/manifest.json` after a build: every referenced path resolves under `dist/` — *G6.5*, `tests/quality/manifest.spec.ts`
-- [x] 9.2 Add a spec asserting required build outputs exist: `manifest.json`, `background.js`, `content.js`, the three HTML files, their scripts, and the four icon sizes — *G6.4*
-- [x] 9.3 Add a spec failing when an HTML file in `public/` is not referenced by the manifest, so a new surface cannot be silently missed — *G6.4*
-- [x] 9.4 Add manifest invariant specs: `manifest_version` is 3, no `<all_urls>` or `*://*/*` host pattern, **every `host_permissions` entry resolves to a loopback host**, and every declared permission has a corresponding API usage in source — *G7.1*, *G6.5*, `tests/quality/manifest.spec.ts`
-- [x] 9.5 Add a remote-code spec scanning all sources and HTML for `eval(`, `new Function(`, and `<script src="http` — *G6.5*
-- [x] 9.6 Add a spec asserting no committed spec contains `it.only`, `describe.only`, `it.skip` or `describe.skip` — *G6.3*
-- [x] 9.7 Add a spec asserting `tsconfig.json` still has `strict: true` and no `any`-suppressing compiler option — *G6.1*
-- [x] 9.8 Add a source-scan spec asserting production code outside schema/types implements no belief, goal, world-model or consolidation logic — *G5.4*
-- [x] 9.9 Add a source-scan spec asserting `/memory/ingest` appears nowhere under `src/` — *G5.5*, `tests/quality/source-scans.spec.ts`
-- [x] 9.10 Add a source-scan spec asserting no `chrome.storage.sync` write receives conversation text — *G2.7*, `tests/quality/source-scans.spec.ts`
-- [x] 9.11 Add a `.gitignore` spec asserting the build output directory is ignored and no built artifact is tracked — *G6.7*
-- [x] 9.12 Add a `README` spec asserting both transport modes are documented and Consumer Mode requires no separate server install — *G6.5*
-- [x] 9.13 Add an npm script that runs the full gate chain (typecheck — lint — test — build) in order and exits non-zero on the first failure — *G6.1*
-- [x] 9.14 **Implement `npm run test:traceability`** (`scripts/traceability.js`): parse `G#.#` ids from `docs/END-STATE.md`, parse cited ids from every `openspec/changes/**/specs/*/spec.md` requirement heading, and verify every test path cited in this file exists on disk. Fail when a criterion is cited by no requirement, when a requirement cites a nonexistent criterion, or when a cited test path is missing. Wire it into the test run — *G6.8*, `tests/quality/traceability.spec.ts`
-- [x] 9.15 Run the full gate chain and record the complete output — *G6.1*
+- [x] 9.1 Add a spec validating `dist/manifest.json` after a build: every referenced path resolves under `dist/` �?*G6.5*, `tests/quality/manifest.spec.ts`
+- [x] 9.2 Add a spec asserting required build outputs exist: `manifest.json`, `background.js`, `content.js`, the three HTML files, their scripts, and the four icon sizes �?*G6.4*
+- [x] 9.3 Add a spec failing when an HTML file in `public/` is not referenced by the manifest, so a new surface cannot be silently missed �?*G6.4*
+- [x] 9.4 Add manifest invariant specs: `manifest_version` is 3, no `<all_urls>` or `*://*/*` host pattern, **every `host_permissions` entry resolves to a loopback host**, and every declared permission has a corresponding API usage in source �?*G7.1*, *G6.5*, `tests/quality/manifest.spec.ts`
+- [x] 9.5 Add a remote-code spec scanning all sources and HTML for `eval(`, `new Function(`, and `<script src="http` �?*G6.5*
+- [x] 9.6 Add a spec asserting no committed spec contains `it.only`, `describe.only`, `it.skip` or `describe.skip` �?*G6.3*
+- [x] 9.7 Add a spec asserting `tsconfig.json` still has `strict: true` and no `any`-suppressing compiler option �?*G6.1*
+- [x] 9.8 Add a source-scan spec asserting production code outside schema/types implements no belief, goal, world-model or consolidation logic �?*G5.4*
+- [x] 9.9 Add a source-scan spec asserting `/memory/ingest` appears nowhere under `src/` �?*G5.5*, `tests/quality/source-scans.spec.ts`
+- [x] 9.10 Add a source-scan spec asserting no `chrome.storage.sync` write receives conversation text �?*G2.7*, `tests/quality/source-scans.spec.ts`
+- [x] 9.11 Add a `.gitignore` spec asserting the build output directory is ignored and no built artifact is tracked �?*G6.7*
+- [x] 9.12 Add a `README` spec asserting both transport modes are documented and Consumer Mode requires no separate server install �?*G6.5*
+- [x] 9.13 Add an npm script that runs the full gate chain (typecheck �?lint �?test �?build) in order and exits non-zero on the first failure �?*G6.1*
+- [x] 9.14 **Implement `npm run test:traceability`** (`scripts/traceability.js`): parse `G#.#` ids from `docs/END-STATE.md`, parse cited ids from every `openspec/changes/**/specs/*/spec.md` requirement heading, and verify every test path cited in this file exists on disk. Fail when a criterion is cited by no requirement, when a requirement cites a nonexistent criterion, or when a cited test path is missing. Wire it into the test run �?*G6.8*, `tests/quality/traceability.spec.ts`
+- [x] 9.15 Run the full gate chain and record the complete output �?*G6.1*
 
 Gate evidence for 9.1–9.15 (run 2026-09-14, Windows, Node v22.18.0):
 
@@ -230,12 +230,12 @@ Three findings from running the gate rather than assuming it:
 
 ## 10. Acceptance verification
 
-- [x] 10.1 Verify `capture-contract`: every requirement has a passing spec; name the spec file per requirement — *G3.1*, *G5.1*, *G5.3*, `tests/schema/`
-- [x] 10.2 Verify `capture-providers`: every requirement has a passing spec, including all five providers' `matches()` coverage, rung coverage, containment scans and the drift threshold — *G1.1*–*G1.9*, *G8.1*–*G8.9*, `tests/capture/`
-- [x] 10.3 Verify `capture-pipeline`: acknowledged delivery, FIFO, backoff cap, persisted `nextAttemptAt`, no-loss-counter, content-free failure log, debounce, and passive-inert-when-disabled — *G2.1*–*G2.10*, `tests/capture/`
-- [x] 10.4 Verify `transport-layer`: the verified-surface scenarios, the positive-ack rule, both retrieval mechanisms, the `{score, record}` unwrap, and all three modes plus fallback and remote-refusal rules — *G3.2*–*G3.6*, *G7.3*, *G5.3*, `tests/api/`
-- [x] 10.5 Verify `extension-surfaces`: settings, mode control, capture status with unacknowledged/paused, the remote-egress confirmation and banner, capture feedback, and messaging-contract specs pass; record the two manual gates — *G2.3*, *G7.2*, *G7.4*, `tests/surfaces/`
-- [x] 10.6 Verify `quality-gates`: every gate command and invariant spec passes including traceability; record each command's exit code — *G6.1*–*G6.8*
+- [x] 10.1 Verify `capture-contract`: every requirement has a passing spec; name the spec file per requirement �?*G3.1*, *G5.1*, *G5.3*, `tests/schema/`
+- [x] 10.2 Verify `capture-providers`: every requirement has a passing spec, including all five providers' `matches()` coverage, rung coverage, containment scans and the drift threshold �?*G1.1*�?G1.9*, *G8.1*�?G8.9*, `tests/capture/`
+- [x] 10.3 Verify `capture-pipeline`: acknowledged delivery, FIFO, backoff cap, persisted `nextAttemptAt`, no-loss-counter, content-free failure log, debounce, and passive-inert-when-disabled �?*G2.1*�?G2.10*, `tests/capture/`
+- [x] 10.4 Verify `transport-layer`: the verified-surface scenarios, the positive-ack rule, both retrieval mechanisms, the `{score, record}` unwrap, and all three modes plus fallback and remote-refusal rules �?*G3.2*�?G3.6*, *G7.3*, *G5.3*, `tests/api/`
+- [x] 10.5 Verify `extension-surfaces`: settings, mode control, capture status with unacknowledged/paused, the remote-egress confirmation and banner, capture feedback, and messaging-contract specs pass; record the two manual gates �?*G2.3*, *G7.2*, *G7.4*, `tests/surfaces/`
+- [x] 10.6 Verify `quality-gates`: every gate command and invariant spec passes including traceability; record each command's exit code �?*G6.1*�?G6.8*
 Spec-per-requirement audit for 10.1-10.6 (run 2026-09-14, Windows, Node v22.18.0).
 
 **How the mapping was assigned, and what it is not.** The `### Requirement:` headings of each
@@ -396,9 +396,9 @@ only possible evidence is a live probe rather than a unit test, Consumer Mode wh
 only (10.8), and the POSIX leg of the cross-platform scripts. Nothing else in the six capabilities
 was left without a named file.
 
- — stop the core, capture 10 conversations, restart it, confirm all 10 are delivered and `GET /memory/query?actor=…` returns 10 records; then capture from two different providers and confirm each provider filter returns only its own records. Record raw output — *G2.8*, *G3.7*
+ �?stop the core, capture 10 conversations, restart it, confirm all 10 are delivered and `GET /memory/query?actor=…` returns 10 records; then capture from two different providers and confirm each provider filter returns only its own records. Record raw output �?*G2.8*, *G3.7*
 - [x] 10.8 **Resolve Open Question 1**: confirm or correct the native host name and message framing against the HipCortex Desktop installer, or record that Consumer Mode remains mock-verified only
-- [x] 10.9 **Open Question 2 was resolved by probing**: `POST /memory/add` is the capture endpoint and `/memory/ingest` is forbidden. Re-verify that the live runtime still behaves this way and update `docs/PROTOCOL.md` if any row changed — *G5.2*
+- [x] 10.9 **Open Question 2 was resolved by probing**: `POST /memory/add` is the capture endpoint and `/memory/ingest` is forbidden. Re-verify that the live runtime still behaves this way and update `docs/PROTOCOL.md` if any row changed �?*G5.2*
 - [x] 10.10 Run `openspec validate "cortexbridge-perception-layer" --strict` and `openspec status --change "cortexbridge-perception-layer"`; record both outputs
 - [x] 10.11 Replace every "not executed" marker in `docs/END-STATE.md` with quoted command output for the criteria this change covers (G1, G2, G3.1–G3.8, G5.1, G5.3–G5.5, G6, G7, G8)
 - [x] 10.12 Record which goals remain unaddressed and name the follow-up change that owns each: `cross-provider-search-index` (G3.9), `substrate-migration` (G4.1–G4.4), `capture-context-injection` (G4.5), and the cross-repo dependency `core: add filter to POST /memory/search`
@@ -749,10 +749,40 @@ questions this work actually raised - including the two answered by inspecting t
 asking (10.8), the five failed attempts at a measurement (10.1), and the decision not to widen the lint
 gate to reach the gate script itself.
 
-## 11. Follow-up changes (not part of this change — recorded so they are not lost)
+## 11. Follow-up changes (not part of this change �?recorded so they are not lost)
 
-- [x] 11.1 Draft `cortexbridge-retention-boundary`: what the extension retains, for how long, and why it is not a second substrate — *G2*, *G4*
-- [x] 11.2 Draft `cross-provider-search-index`: local offline search over captured conversations with its own retention rule — *G3.9*
-- [x] 11.3 Draft `substrate-migration`: versioned export/import with a recorded `id` remap, field-equivalence verification, and version-mismatch rejection — *G4.1*–*G4.4*
-- [x] 11.4 Draft `capture-context-injection`: writing captured context into a provider composer, gated by `injectIntoAiChats` — *G4.5*
-- [x] 11.5 Raise the cross-repo dependency `core: add filter to POST /memory/search` so semantic search can be provider-scoped — *G3.6*
+- [x] 11.1 Draft `cortexbridge-retention-boundary`: what the extension retains, for how long, and why it is not a second substrate �?*G2*, *G4*
+- [x] 11.2 Draft `cross-provider-search-index`: local offline search over captured conversations with its own retention rule �?*G3.9*
+- [x] 11.3 Draft `substrate-migration`: versioned export/import with a recorded `id` remap, field-equivalence verification, and version-mismatch rejection �?*G4.1*�?G4.4*
+- [x] 11.4 Draft `capture-context-injection`: writing captured context into a provider composer, gated by `injectIntoAiChats` �?*G4.5*
+- [x] 11.5 Raise the cross-repo dependency `core: add filter to POST /memory/search` so semantic search can be provider-scoped �?*G3.6*
+## 12. Making capture reachable (added after the first user report)
+
+The first person to install this reported that it stored nothing from a ChatGPT or a Claude
+conversation. The extractors were not at fault. The switches that decide whether anything happens at
+all were either unreachable or invisible, and no criterion in `docs/END-STATE.md` could fail on that —
+which made it a hole in the plan before it was a defect in the code. Four criteria were added (G1.10 to
+G1.13) and the tasks below discharge them.
+
+The reconciliation with the review document that prompted this work is written into the rationale
+paragraph under the G1 criteria table in `docs/END-STATE.md`: the document asked to keep
+`autoCapture` default `false` **unless** a consent prompt and a site-permission flow shipped with the
+flip. Both shipped, so the default is `true` and stays `true`. Its non-goals are respected — no Desktop
+installer, no new provider, no selector rewrite.
+
+- [x] 12.1 Resolve site access from `contains` **or** `getAll`, in one place, with an unanswerable query counting as not allowed — *G1.10* — `tests/ui/site-access.spec.ts`
+- [x] 12.2 Read the declared origins from the manifest rather than a second list, so no surface can promise a host the build never asks for — *G1.10* — `tests/ui/site-access.spec.ts`
+- [x] 12.3 State the missing hosts on the options page, with one control that requests the whole declared list in a single gesture — *G1.10* — `tests/options/site-access.spec.ts`
+- [x] 12.4 Make the toolbar badge a standing statement: `!` in the warning colour while any declared site is ungranted, blank when all are — *G1.11* — `tests/router/first-run.spec.ts`
+- [x] 12.5 Open the options page on `install` and not on `update`, so a new user is told the choice exists and an existing one is not interrupted — *G1.11* — `tests/router/first-run.spec.ts`
+- [x] 12.6 Return a flashed badge to the standing state rather than to blank, so a capture success cannot erase the warning — *G1.11* — `tests/router/first-run.spec.ts`
+- [x] 12.7 Add `CAPTURE_ACTIVE_TAB` and the worker→page `FLUSH_CAPTURE` protocol, so a whole conversation can be asked for on demand — *G1.12* — `tests/capture/flush.spec.ts`
+- [x] 12.8 Run the click as a `manual` trigger, which `autoCapture` does not gate, so a user with passive capture off still has the button — *G1.12* — `tests/router/capture-active-tab.spec.ts`
+- [x] 12.9 Type every way the click can fail — no active tab, unwatched page, refused site, extraction failure, no answer at all — *G1.12* — `tests/router/capture-active-tab.spec.ts`
+- [x] 12.10 Never report an unacknowledged capture as stored: a queued capture is "kept here, will be retried", a paused queue is a failure — *G1.12*, *G2.9* — `tests/router/capture-active-tab.spec.ts`
+- [x] 12.11 Keep the capture in `chrome.storage.local` through a transient failure, so the promise to retry is a fact about the disk and not about the message — *G2.9* — `tests/router/capture-active-tab.spec.ts`
+- [x] 12.12 Give the popup a "Capture this conversation" control and a passive switch that writes only the field it changed — *G1.13* — `tests/surfaces/conversation-capture.spec.ts`
+- [x] 12.13 Give the side panel the same control and the same three renderable outcomes, so the two surfaces cannot describe one click differently — *G1.13* — `tests/surfaces/conversation-capture.spec.ts`
+- [x] 12.14 Rename the Options label from a mechanism to an outcome, and explain what the switch governs and what it does not — *G1.13* — `tests/options/site-access.spec.ts`
+- [x] 12.15 Keep provider names out of the router and the transport while doing all of the above, including in comments — *G1.8* — `tests/quality/source-scans.spec.ts`
+- [x] 12.16 Default `autoCapture` to `true`, because with it false a fresh install captured nothing, raised no error and said nothing — *G1.10*, *G1.12* — `tests/capture/pipeline.spec.ts`

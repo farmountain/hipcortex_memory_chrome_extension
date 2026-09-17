@@ -72,9 +72,9 @@ describe("the worker reports the queue and the pause — G2.3 (task 8.7)", () =>
     expect(Object.keys(status)).toEqual(["autoCapture", "retention", "needsAttention", "failures"]);
   });
 
-  it("reports passive capture off by default and on when the setting asks for it", async () => {
-    expect((await captureStatus()).autoCapture).toBe(false);
-    expect((await captureStatus({ autoCapture: true })).autoCapture).toBe(true);
+  it("reports passive capture on by default and off when the setting asks for it", async () => {
+    expect((await captureStatus()).autoCapture).toBe(true);
+    expect((await captureStatus({ autoCapture: false })).autoCapture).toBe(false);
   });
 
   it("pauses at the spill limit and names the unacknowledged count", async () => {

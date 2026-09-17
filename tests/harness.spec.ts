@@ -19,7 +19,9 @@ describe("test harness (node project)", () => {
 
   it("resolves src/ TypeScript through its emitted .js specifiers", () => {
     expect(DEFAULT_SETTINGS.apiUrl).toBe("http://127.0.0.1:3030");
-    expect(DEFAULT_SETTINGS.autoCapture).toBe(false);
+    // Pinned because the shipped value of this flag decides whether a fresh install stores anything
+    // at all — see the note on `DEFAULT_SETTINGS` (G1.7).
+    expect(DEFAULT_SETTINGS.autoCapture).toBe(true);
   });
 
   it("locates the repository root from a test helper", () => {

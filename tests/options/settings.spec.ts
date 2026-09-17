@@ -128,7 +128,7 @@ describe("the transport mode control — task 8.1", () => {
 
     expect((document.getElementById("apiUrl") as HTMLInputElement).value).toBe(DEFAULT_SETTINGS.apiUrl);
     expect((document.getElementById("transportMode") as HTMLSelectElement).value).toBe("auto");
-    expect((document.getElementById("autoCapture") as HTMLInputElement).checked).toBe(false);
+    expect((document.getElementById("autoCapture") as HTMLInputElement).checked).toBe(true);
     expect((document.getElementById("injectIntoAiChats") as HTMLInputElement).checked).toBe(false);
     expect((document.getElementById("headroomMode") as HTMLInputElement).checked).toBe(true);
     expect(textOf("status")).toBe("");

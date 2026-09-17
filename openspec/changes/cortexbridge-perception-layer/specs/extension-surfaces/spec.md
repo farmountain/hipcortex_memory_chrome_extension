@@ -82,6 +82,80 @@ A failing action SHALL NOT silently reset the input.
 - **WHEN** a context-menu or keyboard capture succeeds or fails
 - **THEN** the action badge reflects the outcome and later clears
 
+### Requirement: A site is described as readable only if some browser answer says so (G1.10)
+The extension SHALL resolve site access from both `permissions.contains` and `permissions.getAll`,
+SHALL treat an origin as allowed when either answer vouches for it, and SHALL treat an unanswerable
+query as **not** allowed. The declared origins SHALL be read from the manifest. No surface SHALL
+compute this decision itself.
+
+#### Scenario: An unpacked install is not described as denied
+- **WHEN** `contains` answers `false` for every declared origin and `getAll` lists them all
+- **THEN** every declared origin resolves as allowed
+
+#### Scenario: A stale grant does not inflate coverage
+- **WHEN** `getAll` lists an origin the manifest does not declare
+- **THEN** that origin is absent from the resolved set and from any count built from it
+
+#### Scenario: A failed query is not a grant
+- **WHEN** either permission query throws
+- **THEN** the origins it could not vouch for resolve as not allowed
+
+#### Scenario: The options page states the missing hosts and can ask for them
+- **WHEN** some declared origins are ungranted
+- **THEN** the options page names them, says that nothing is captured from them, and offers a
+  single control that requests the whole declared list
+
+### Requirement: A new install is told the choice exists (G1.11)
+While any declared site is ungranted the toolbar badge SHALL state that fact, and the options page
+SHALL open once on `install` and SHALL NOT open on `update`.
+
+#### Scenario: Badge states the missing grant
+- **WHEN** the worker starts with one or more declared origins ungranted
+- **THEN** the badge shows `!` in the warning colour and the tooltip names the count and the action
+
+#### Scenario: Badge is silent when every site is allowed
+- **WHEN** every declared origin is allowed
+- **THEN** the badge text is empty
+
+#### Scenario: Badge tracks a grant made outside the extension
+- **WHEN** the browser reports a permission added or removed
+- **THEN** the badge is recomputed from the new state
+
+#### Scenario: A badge flash returns to the standing state
+- **WHEN** a capture flashes the badge and the flash expires
+- **THEN** the badge returns to the standing state rather than to blank
+
+#### Scenario: The first-run page opens only once
+- **WHEN** the worker receives `onInstalled`
+- **THEN** the options page is opened if and only if `reason` is `install`
+
+### Requirement: A conversation can be captured on demand (G1.12, G1.13)
+The popup and the side panel SHALL each offer a single control that captures the whole conversation
+on the active tab. The worker SHALL treat that click as a `manual` trigger, which `autoCapture` SHALL
+NOT gate, and SHALL answer with a typed report. A surface SHALL NOT render an unacknowledged capture
+as stored.
+
+#### Scenario: The click reaches the page and comes back as a conversation
+- **WHEN** the active tab carries a watched conversation and the page answers with an extraction
+- **THEN** the capture is forwarded as a `manual` trigger and the report carries the message count
+
+#### Scenario: The click works with passive capture off
+- **WHEN** `autoCapture` is `false` and the user clicks the control
+- **THEN** the conversation is captured, because asking is not the extension acting on its own
+
+#### Scenario: Every way the click can fail is typed
+- **WHEN** there is no active tab, the page is not watched, the site is not allowed, the page
+  answered with an extraction failure, or the page answered with nothing
+- **THEN** the report carries the corresponding code and a sentence naming the cause
+
+#### Scenario: An unacknowledged capture is not called stored
+- **WHEN** the runtime refused the record, or the queue is paused, or the runtime was unreachable
+- **THEN** the surface reports a failure or a retry, and never the word "stored"
+
+#### Scenario: The passive switch writes only what it changed
+- **WHEN** the user toggles passive capture in the popup
+- **THEN** the request carries `autoCapture` alone, and the note explains what remains available
+
 ### Requirement: Injection is gated and inert by default
 `injectIntoAiChats` SHALL default to `false`. When `false`, the extension SHALL NOT write any
 content into a provider page. When `true`, the setting SHALL gate the behavior but SHALL NOT by

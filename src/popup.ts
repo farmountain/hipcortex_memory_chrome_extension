@@ -8,6 +8,7 @@ import type {
   ExtensionSettings,
   HealthReport,
   CaptureStatus,
+  ConversationCaptureReport,
   SearchIndexReport,
   SearchIndexStatus,
   SearchResult,
@@ -90,10 +91,15 @@ async function refreshCaptureStatus() {
     byId<HTMLSpanElement>("capture-queued").textContent = "?";
     byId<HTMLSpanElement>("capture-unacknowledged").textContent = "?";
     byId<HTMLParagraphElement>("capture-paused").classList.add("hidden");
+    // An unreadable status is shown as a disabled switch rather than as an off switch: rendering an
+    // unknown state as "off" would invite a click that silently rewrites a setting nobody read.
+    const unknownToggle = document.getElementById("capture-toggle") as HTMLInputElement | null;
+    if (unknownToggle) unknownToggle.disabled = true;
     return;
   }
 
   byId<HTMLSpanElement>("capture-passive").textContent = status.autoCapture ? "on" : "off";
+  syncCaptureToggle(status.autoCapture);
 
   const queued = status.retention.queued;
   byId<HTMLSpanElement>("capture-queued").textContent = String(queued);
@@ -130,6 +136,114 @@ async function refreshCaptureStatus() {
   // full backlog would be the same failure as a hidden one, so the enablement is derived from the
   // same count the rows above show (G4.1).
   byId<HTMLButtonElement>("btn-export-queue").disabled = queued === 0;
+}
+
+/**
+ * The passive switch, and the sentence that explains what it is currently doing.
+ *
+ * Passive capture is a switch rather than a row of text because it is the one setting that decides
+ * whether anything is captured without the user asking, and a user who has to open Settings to find it
+ * reports the extension as doing nothing. The two sentences exist because "off" and "on" are not
+ * self-explanatory here: this is the one control whose off state is safe, so a person who turns it off
+ * must be told that the button above still works, and a person looking at an on switch must be told
+ * where the captures go.
+ *
+ * Provider names are not written here. The manifest's own list is what decides which sites are read,
+ * and the site access section of the options page names them; repeating the list in this file would
+ * put the extension's provider knowledge in a second place, free to fall behind the first.
+ */
+function syncCaptureToggle(on: boolean): void {
+  const toggle = document.getElementById("capture-toggle") as HTMLInputElement | null;
+  const note = document.getElementById("capture-toggle-note") as HTMLParagraphElement | null;
+  if (!toggle || !note) return;
+
+  toggle.disabled = false;
+  toggle.checked = on;
+  note.textContent = on
+    ? "Conversations are captured as you read them, on the AI chat sites you have allowed. Captures stay on this machine."
+    : "Nothing is captured automatically. The button above still captures the conversation you are looking at.";
+}
+
+/**
+ * Flip passive capture from the popup — the change the gap document asks for.
+ *
+ * Only `autoCapture` is sent. `saveSettings` merges, so a partial cannot clobber the base URL or the
+ * transport mode, and leaving `apiUrl` out of the message also means this single click can never
+ * trigger the off-machine confirmation: the setting being changed has nothing to do with where
+ * captures go.
+ *
+ * The switch is re-read from the worker afterwards rather than left showing what was clicked. If the
+ * save was refused, the switch returns to the setting that is actually in force, so the control cannot
+ * display a state the extension is not in.
+ */
+async function setPassiveCapture(on: boolean): Promise<void> {
+  const toggle = document.getElementById("capture-toggle") as HTMLInputElement | null;
+  if (toggle) toggle.disabled = true;
+
+  await send({ type: "SAVE_SETTINGS", settings: { autoCapture: on } });
+  await refreshCaptureStatus();
+  await refreshHealth();
+}
+
+/**
+ * One click, one conversation, one visible answer — G1.12.
+ *
+ * The note under the button is the whole point of the change: before it, a capture either worked
+ * silently or failed silently, and a silent failure is indistinguishable from an extension that does
+ * nothing. Three outcomes are rendered distinctly, and the distinction comes from the report's `code`
+ * rather than from matching the sentence the worker composed:
+ *
+ * - no code: the runtime acknowledged it, so it says stored;
+ * - `NOT_ACKNOWLEDGED` with a success: it is kept here and will be retried — not lost, not yet stored;
+ * - a failure: the typed reason, which names the page, the provider or the grant that is missing.
+ *
+ * The last case is deliberately built from `error` and `code` together. "It did not work" without the
+ * reason is what made the original report impossible to act on.
+ */
+function conversationCaptureNote(response: MessageResponse<ConversationCaptureReport>): [string, boolean, boolean] {
+  const report = response.data;
+
+  if (!response.success || !report?.captured) {
+    const code = report?.code ?? "ERROR";
+    const why = response.error ?? report?.detail ?? "the worker did not report a reason";
+    return [`Could not capture this conversation (${code}): ${why}`, false, false];
+  }
+
+  const where = report.providerId ?? "this page";
+  const count = report.messages === undefined ? "the conversation" : `${report.messages} messages`;
+
+  if (report.code === "NOT_ACKNOWLEDGED") {
+    return [
+      `Read ${count} from ${where} and kept them here. The runtime has not acknowledged them yet, so they will be retried — nothing was lost.`,
+      true,
+      false,
+    ];
+  }
+
+  return [`Captured ${count} from ${where}. Stored.`, true, true];
+}
+
+async function captureActiveConversation(): Promise<void> {
+  const button = document.getElementById("btn-capture-conversation") as HTMLButtonElement | null;
+  const note = document.getElementById("conversation-capture-note") as HTMLParagraphElement | null;
+  if (!button || !note) return;
+
+  button.disabled = true;
+  note.textContent = "Reading this page…";
+  note.classList.remove("hidden");
+
+  const response = await send<ConversationCaptureReport>({ type: "CAPTURE_ACTIVE_TAB" });
+  const [sentence, ok, stored] = conversationCaptureNote(response);
+
+  note.textContent = sentence;
+  note.className = `capture-export-note ${ok ? (stored ? "ok" : "pending") : "err"}`;
+  button.disabled = false;
+
+  // The counts beside the button are refreshed from the same click: a capture that was kept shows up
+  // as an unacknowledged entry, and one that was stored moves the local index. Leaving them stale
+  // would make the panel contradict the line directly above it.
+  await refreshCaptureStatus();
+  await refreshIndexStatus();
 }
 
 /**
@@ -282,6 +396,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   await refreshEgressBanner();
   await refreshCaptureStatus();
   await refreshIndexStatus();
+
+  document.getElementById("btn-capture-conversation")!.addEventListener("click", () => {
+    void captureActiveConversation();
+  });
+
+  document.getElementById("capture-toggle")!.addEventListener("change", (event) => {
+    const next = (event.target as HTMLInputElement).checked;
+    void setPassiveCapture(next);
+  });
 
   document.getElementById("btn-add")!.addEventListener("click", async () => {
     const field = document.getElementById("memory-text") as HTMLTextAreaElement;

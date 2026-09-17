@@ -50,6 +50,18 @@ button.primary { background: var(--accent); color: #fff; border: none; }
 /* ---------- Persistent failure line ---------- */
 .capture-note { color: var(--error); font-size: 12px; margin-top: 8px; }
 
+/*
+ * The conversation-capture outcome. `.capture-note` is error-coloured by default because its other
+ * caller is the quick-add failure, so an acknowledged capture has to opt into green explicitly — and a
+ * queued one gets the accent colour, because "read, kept here, will be retried" is a third state, not
+ * a success and not a failure.
+ */
+.capture-note.ok { color: var(--success); }
+.capture-note.pending { color: var(--accent); }
+
+.conversation-capture { margin-bottom: 12px; }
+.conversation-capture button { width: 100%; }
+
 /* ---------- Placement action (G4.5) ---------- */
 .result-actions { margin-top: 8px; }
 .result-place { font-size: 12px; padding: 3px 10px; }

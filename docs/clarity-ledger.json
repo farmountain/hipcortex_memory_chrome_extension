@@ -12,7 +12,7 @@
     { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24", "Q25", "Q26", "Q27", "Q28", "Q29", "Q30"] },
     { "stage": "unknowns", "entries": ["Q4", "Q5", "Q11", "Q20", "Q21"] },
     { "stage": "planning", "entries": ["Q6", "Q9", "Q18"] },
-    { "stage": "react-iterations", "entries": ["Q7", "Q8", "Q10", "Q16", "Q17"] }
+    { "stage": "react-iterations", "entries": ["Q7", "Q8", "Q10", "Q16", "Q17", "Q31", "Q32", "Q33", "Q34"] }
   ],
   "questions": [
     {
@@ -641,6 +641,98 @@
       ],
       "resolution": "Treated as a mis-paste and replaced. The box asks what the extension does and why, so it now carries a purpose statement naming the five sites, the local runtime as the only destination, and the user as the only person the data belongs to; the shipping description stays where it belongs, in the listing title and summary. Eleven paste-ready fields were added to docs/STORE.md, one per box the dashboard shows as empty plus the remote-code answer and the policy URL, each under its own heading with a fenced block directly beneath so a test can extract it and measure it. The work also surfaced a real divergence: the local unpacked build answers to the ID the pinned key derives, the published item will answer to the ID the dashboard already assigned it, and section 11 is where the two are reconciled.",
       "doesNotEstablish": "That the dashboard's counter was measuring the description field rather than the purpose box - the lengths match and the box is empty of anything else, which is a strong inference rather than a reading of the form's state. It also does not establish that the reviewer accepts the purpose statement's scope, and it does not establish that the eleven blocks are the whole list of empty fields, because the dashboard can add one."
+    },
+    {
+      "id": "Q31",
+      "stage": "react-iterations",
+      "critical": true,
+      "question": "The first user report is that the extension stores nothing from a chatgpt or claude conversation. The review document attached to this iteration says to keep autoCapture default false, and also says the manual capture path must bypass the auto gate. Which of those two readings explains a shipped install that stores nothing, and does making autoCapture default true break the privacy boundary the flag was protecting?",
+      "state": "self-resolved",
+      "attempts": 4,
+      "artifactsTried": [
+        "src/capture/pipeline.ts - the trigger union and the inert branch: with the flag false a passive capture returns status inert with reason auto-capture-disabled before any adapter is selected",
+        "tests/capture/pipeline.spec.ts - a manual trigger with the flag false already delivers, so the gate was never about the manual path",
+        "src/types/index.ts - DEFAULT_SETTINGS.autoCapture, and the other fields that decide egress: apiUrl, transportMode, apiKey",
+        "public/manifest.json - host_permissions is loopback only, optional_host_permissions carries the six provider origins, so reading a provider page requires a grant that is separate from the flag",
+        "src/background.ts - the off-machine confirmation and the persistent banner, which are keyed on apiUrl rather than on autoCapture",
+        "docs/END-STATE.md G7.1 and G7.2 - the egress boundary the flag is not part of",
+        ".scratch/out-of-box-probe.mjs - the shipped-settings probe, which saves the shipped settings and swaps only apiUrl to a dead loopback port"
+      ],
+      "evidence": [
+        "$ node .scratch/out-of-box-probe.mjs -> queuedShipped=2, verdict Neither: a shipped install already captures, 11 of 12 checks",
+        "$ npx vitest run tests/capture/pipeline.spec.ts -> the manual-trigger case with autoCapture false asserts status delivered, while the passive case asserts status inert with reason auto-capture-disabled",
+        "$ npm run verify -> Test Files 60 passed, Tests 931 passed, exit 0",
+        "public/manifest.json -> host_permissions contains only http://127.0.0.1:3030/* and http://localhost:3030/*, and no provider origin appears in it"
+      ],
+      "resolution": "Default flipped to true, and the document's own condition for doing so is met rather than waived. The reason a fresh install stored nothing was the default: the flag decided whether a page was watched at all, it shipped off, so the product installed cleanly, reported no error and captured nothing - which is precisely the report. The privacy boundary the flag was standing in for is enforced by things that do not depend on it: host_permissions is loopback only, auto and consumer modes refuse a non-loopback apiUrl, a manually configured remote URL needs a confirmation naming the host plus a persistent banner, and capture cannot begin on a site the user has not granted. The grant is the consent prompt the document asked for, and it now exists in three places: the options page site list, the toolbar badge, and the first-run page. What the flag still gates is watching, and a manual capture is not gated by it, because asking for the conversation in front of you is not the extension acting on its own. G1.7 is unchanged and still proved; the reconciliation is written into the rationale paragraph under the G1 criteria table so the next reader does not re-litigate it.",
+      "doesNotEstablish": "That the flip is acceptable to a reviewer who reads the flag as the privacy switch itself; the artefacts show the flag is not load-bearing for egress, but a reviewer may still prefer it off. It also does not establish that the consent flow is sufficient for a store reviewer - no artefact here can, and docs/STORE.md is where that argument lives. It does not establish that the user's own capture problem is fixed in their install until the probe is re-run against the rebuilt bundle."
+    },
+    {
+      "id": "Q32",
+      "stage": "react-iterations",
+      "critical": true,
+      "question": "The badge and the first-run page report whether every declared site is allowed. On an unpacked install Chrome answers contains false for every declared origin while getAll lists all six - so which answer is the verdict, and what should happen when neither answer can be read?",
+      "state": "self-resolved",
+      "attempts": 3,
+      "artifactsTried": [
+        "src/ui/site-access.ts - the module header records the measured disagreement between the two permission queries on a real unpacked build",
+        "tests/helpers/chrome-mock.ts - permissions.granted defaults to empty, which is the packaged install before a grant, so a spec about the unpacked case has to say so explicitly",
+        "tests/router/first-run.spec.ts - the unpacked case is asserted directly: contains false for all six, getAll lists all six, and the badge must be blank",
+        "scripts/clarity.js - an exit condition that names nothing is rejected, which is why the unanswerable case is a decision and not a note"
+      ],
+      "evidence": [
+        "$ npx vitest run tests/ui/site-access.spec.ts -> 22 passed, including contains-only, getAll-only, neither, and a throwing query",
+        "$ npx vitest run tests/router/first-run.spec.ts -> 9 passed, including the unpacked case and the unanswerable-query case",
+        "$ npm run verify -> Test Files 60 passed, Tests 931 passed, exit 0"
+      ],
+      "resolution": "The verdict is the union of the two answers, computed in exactly one place - queryAllowedOrigins - and consumed by the worker's badge, the options page's sentence and the first-run check, so the three cannot drift. An origin counts as allowed if either query vouches for it. Neither answer is trusted alone because each is wrong in one of the two install kinds: contains alone leaves the badge at ! forever on an unpacked build that captures perfectly, and getAll alone leaves it blank on a packaged build before the grant. A query that cannot be answered resolves to not allowed, which is the deliberate asymmetry: the failure that matters is telling someone their conversations are being saved when they are not, and an unfounded ! costs one glance at the options page where the real list is stated.",
+      "doesNotEstablish": "That the favicon-area badge is a channel the user notices; that is a product judgement no artefact here settles, and the first-run page exists as the second channel in case it is not. It also does not establish that Chrome reports the same disagreement in a future version, which is why the union is the answer and the spec pins both directions rather than pinning the observed reading."
+    },
+    {
+      "id": "Q33",
+      "stage": "react-iterations",
+      "critical": false,
+      "question": "The cogitative core offers clarify_goal and plan_validation advisory calls over MCP. Should this iteration resolve its open questions through them?",
+      "state": "withdrawn",
+      "attempts": 1,
+      "reason": "Withdrawn as a resolution instrument for this repository: the core's advisory calls returned generic payloads that name no file, no criterion and no command here, so a question settled with them would be anchored to nothing checkable. The repository's own gates - npm test, scripts/traceability.js and scripts/clarity.js - can be falsified, and were used instead. Reopening requires a concrete case in this repository where the gates cannot reach the question.",
+      "artifactsTried": [
+        "mcp_hipcortex_clarify_goal - called with the task text, and returned a generic GoalPayload scaffold with questions that name no file, no criterion and no command in this repository",
+        "mcp_hipcortex_plan_validation - called with candidate success factors, and returned generic verification steps of the same kind",
+        "docs/CLARITY.md - the resolution order is artefacts before people, and the artefacts here are the gates: npm test, scripts/traceability.js and scripts/clarity.js, which read this repository's own plan"
+      ],
+      "evidence": [
+        "$ node scripts/traceability.js -> criteria declared : 71, criteria cited : 71/71 by 59 requirement headings, exit 0",
+        "$ node scripts/clarity.js -> questions resolved from this ledger, stage coverage complete",
+        "$ npm run verify -> Test Files 60 passed, Tests 931 passed, exit 0"
+      ],
+      "resolution": "Withdrawn as a resolution instrument for this repository, not as a product question. The core's advisory answers cannot see the criteria, the specs or the test tree, so a question resolved there would be anchored to nothing checkable; this repository's own gates are the instruments that can be falsified, and they were used. The calls are recorded here rather than dismissed because the next author will otherwise spend the same attempt discovering the same thing.",
+      "doesNotEstablish": "That the advisory calls are useless in general - they were reached over MCP, returned well-formed payloads and cost one attempt each. What is not established is any case in this repository where they would resolve a question the gates could not."
+    },
+    {
+      "id": "Q34",
+      "stage": "react-iterations",
+      "critical": true,
+      "question": "The release pass changed nothing under src/, yet docs/STORE.md, docs/PRIVACY.md, docs/END-STATE.md and README.md all still described the build that shipped before autoCapture was flipped to true. A document that contradicts a shipped default is a submission defect of the same kind as a control that hangs, so what closes this class of unknown permanently, and why did no gate fail on it?",
+      "state": "self-resolved",
+      "attempts": 3,
+      "artifactsTried": [
+        "docs/STORE.md - the paste-ready listing copy, the reviewer walkthrough in section 8 and the web-history disclosure in section 5 all stated that capture ships switched off, and the host-permission box stated that nothing requests the optional origins at runtime",
+        "docs/END-STATE.md - the G1 statement said autoCapture defaults to false, contradicting G1.10 of the same document, which records the flip to true and the consent flow shipped with it",
+        "docs/PRIVACY.md - it said the extension reads the conversation when you are on one of those pages, which is true only after the site grant, and said nothing about the grant at all",
+        "tests/quality/store.spec.ts - every document assertion in it compared a sentence to a manifest field; no assertion compared a sentence about a setting to the setting, which is why the drift was invisible to 942 passing tests",
+        "src/types/index.ts - DEFAULT_SETTINGS.autoCapture, the one place the shipped default can be read from",
+        "docs/CLARITY.md - a question is closed by an exit condition naming what closes it, so the answer here had to be a gate and not a promise to re-read the prose"
+      ],
+      "evidence": [
+        "$ npx vitest run tests/quality/store.spec.ts -> 32 passed (32), exit 0, including the new block that reads autoCapture out of src/types/index.ts and refuses a switch-off sentence in any of the five documents",
+        "$ npx vitest run tests/quality/store.spec.ts (before the fix) -> 1 failed: Host permission justification: expected 1336 to be less than or equal to 1000, which is the form's paste limit and was caught only after the box was rewritten",
+        "$ node .scratch/browser-e2e.mjs -> 26/26 checks passed, exit 0, read against the shipped dist/, and it is what established that the popup reports passive capture on in a fresh profile",
+        "$ npm test -> Test Files 61 passed (61), Tests 942 passed (942), exit 0",
+        "$ node scripts/clarity.js -> exit 0"
+      ],
+      "resolution": "Two things, and the second is the one that lasts. First, every affected sentence was corrected against the shipped build rather than against the previous revision, and the privacy policy gained the section it was missing - the grant is the gate, an install reads nothing until it is given, and it is revocable from the extensions page. Second, the reason no gate failed is stated and then removed: the store spec compared documents to the manifest but never to a setting, so a block was added there that reads autoCapture out of src/types/index.ts, asserts the documents never say capture ships switched off, asserts the end-state statement agrees with G1.10, and asserts the host-permission box says the request is for the declared list. The setting is read, not assumed, so if the default ever moves the block fails loudly instead of inverting into a tautology. The paste limit is the same class of trap and is already asserted, which is how the rewritten box was caught at 1336 characters.",
+      "doesNotEstablish": "That the store listing is accurate about anything the suite does not read - the description, the screenshots and the reviewer walkthrough are prose, and only the claims that name a manifest field or a shipped setting are pinned. It also does not establish that Chrome will accept the rewritten justifications: the 1,000-character limit is documented, but the boxes were measured, not submitted."
     }
   ]
 }

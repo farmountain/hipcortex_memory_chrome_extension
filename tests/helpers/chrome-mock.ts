@@ -12,6 +12,21 @@
  */
 
 import { vi } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
+import { PUBLIC_DIR } from "./scan.js";
+
+/**
+ * The shipped manifest, read from disk.
+ *
+ * Helpers below resolve the declared origins through this rather than through a copy, so a spec about
+ * site access is a spec about the manifest this build actually ships.
+ */
+export function shippedManifest(): ShippedManifest {
+  const raw = readFileSync(path.join(PUBLIC_DIR, "manifest.json"), "utf8");
+  return JSON.parse(raw) as ShippedManifest;
+}
 
 export type MockFn = ReturnType<typeof vi.fn>;
 
@@ -44,6 +59,7 @@ export interface ChromeMock {
     sendMessage: MockFn;
     connectNative: MockFn;
     getURL: (resource: string) => string;
+    getManifest: () => ShippedManifest;
     onMessage: EventMock;
     onInstalled: EventMock;
     onStartup: EventMock;
@@ -65,15 +81,48 @@ export interface ChromeMock {
   };
   sidePanel: { open: MockFn; setPanelBehavior: MockFn };
   scripting: { executeScript: MockFn };
-  tabs: { query: MockFn; sendMessage: MockFn };
+  tabs: { query: MockFn; sendMessage: MockFn; create: MockFn };
   commands: { onCommand: EventMock };
-  permissions: { contains: MockFn; request: MockFn };
+  permissions: {
+    contains: MockFn;
+    request: MockFn;
+    getAll: MockFn;
+    onAdded: EventMock;
+    onRemoved: EventMock;
+  };
 }
 
+/**
+ * The manifest as `chrome.runtime.getManifest()` reports it.
+ *
+ * Read from `public/manifest.json` rather than restated in the mock, so a spec that resolves the
+ * declared origins is resolving the ones this build actually ships. A second copy here would be a
+ * second list to keep in step, and the drift would show up as a spec that passes while the extension
+ * asks the browser for a host it never declared.
+ */
+export interface ShippedManifest {
+  optional_host_permissions?: string[];
+  [key: string]: unknown;
+}
+
+/**
+ * What a spec can say about tabs and permissions.
+ *
+ * `permissions.granted` defaults to **empty**, which is the truth for a packaged install before the
+ * user grants anything. That default is the reason a spec about an unpacked install has to say so in
+ * both places — it is a state only an explicit option produces, and it is the state where
+ * `contains` and `getAll` disagree.
+ */
 export interface ChromeMockOptions {
   sync?: Record<string, unknown>;
   local?: Record<string, unknown>;
   session?: Record<string, unknown>;
+  tabs?: { readonly active?: { readonly id?: number; readonly url?: string } | null };
+  permissions?: {
+    contains?: (origins: readonly string[]) => boolean;
+    request?: (origins: readonly string[]) => Promise<boolean>;
+    granted?: readonly string[];
+  };
 }
 
 function eventMock(): EventMock {
@@ -231,6 +280,7 @@ export function createChromeMock(options: ChromeMockOptions = {}): ChromeMock {
       sendMessage: vi.fn(async () => ({ success: true })),
       connectNative: vi.fn(() => createNativePort()),
       getURL: (resource: string) => `chrome-extension://cortexbridge-spec/${resource}`,
+    getManifest: () => shippedManifest(),
       onMessage: eventMock(),
       onInstalled: eventMock(),
       onStartup: eventMock(),
@@ -259,9 +309,23 @@ export function createChromeMock(options: ChromeMockOptions = {}): ChromeMock {
       setPanelBehavior: vi.fn(async () => undefined),
     },
     scripting: { executeScript: vi.fn(async () => [{ result: "" }]) },
-    tabs: { query: vi.fn(async () => []), sendMessage: vi.fn(async () => undefined) },
-    commands: { onCommand: eventMock() },
-    permissions: { contains: vi.fn(async () => true), request: vi.fn(async () => true) },
+  tabs: {
+    query: vi.fn(async () => (options.tabs?.active ? [options.tabs.active] : [])),
+    sendMessage: vi.fn(async () => undefined),
+    create: vi.fn(async () => ({})),
+  },
+  commands: { onCommand: eventMock() },
+  permissions: {
+    contains: vi.fn(async (query: { origins?: readonly string[] }) =>
+      options.permissions?.contains ? options.permissions.contains(query.origins ?? []) : true
+    ),
+    request: vi.fn(async (query: { origins?: readonly string[] }) =>
+      options.permissions?.request ? options.permissions.request(query.origins ?? []) : true
+    ),
+    getAll: vi.fn(async () => ({ origins: options.permissions?.granted ?? [] })),
+    onAdded: eventMock(),
+    onRemoved: eventMock(),
+  },
   };
 }
 

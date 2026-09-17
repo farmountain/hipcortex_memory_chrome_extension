@@ -5,6 +5,8 @@
 
 import type {
   CaptureStatus,
+  ConversationCaptureCode,
+  ConversationCaptureReport,
   ExtensionSettings,
   HealthReport,
   ImportReport,
@@ -33,6 +35,9 @@ import { importDocument } from "./migration/import.js";
 import { resolvePreviousId } from "./migration/remap.js";
 import { PLACE_CONTEXT_REQUEST } from "./inject/protocol.js";
 import type { PlaceContextReply, PlaceContextRequest } from "./inject/protocol.js";
+import { FLUSH_CAPTURE_REQUEST } from "./capture/flush.js";
+import type { FlushCaptureReply, FlushCaptureRequest } from "./capture/flush.js";
+import { originLabel, queryAllowedOrigins, ungrantedOrigins } from "./ui/site-access.js";
 
 // ---------- Settings helpers ----------
 async function getSettings(): Promise<ExtensionSettings> {
@@ -119,11 +124,214 @@ async function sendRecord(record: MemoryRecord): Promise<SendResult> {
   return result;
 }
 
+/**
+ * A reply about a user's own capture request.
+ *
+ * It always carries the report, including on failure: the surface needs the provider and the message
+ * count most when the answer is no, because that is when the user wants to know what *was* seen.
+ */
+function conversationResponse(report: ConversationCaptureReport, error?: string): MessageResponse {
+  return error === undefined
+    ? { success: true, data: report }
+    : { success: false, data: report, error };
+}
+
+/** A capture request that never reached the pipeline, in one shape every branch shares. */
+function conversationFailure(
+  code: ConversationCaptureCode,
+  detail: string,
+  known: Pick<ConversationCaptureReport, "providerId" | "url"> = {}
+): MessageResponse {
+  return conversationResponse({ captured: false, code, detail, ...known }, detail);
+}
+
+/**
+ * Fold the pipeline's answer into the report, without inventing a second vocabulary for it.
+ *
+ * `toCaptureResponse` already decides what `success` means for a capture — the core is now
+ * responsible for it, delivered or durably queued — so this function relays that same decision and
+ * only adds the sentence a person reads. It does not re-derive success from the status here: a second
+ * switch would be a second answer to the same question, free to drift from the first.
+ *
+ * The report's `code` carries the situation, which is what a surface needs to colour the answer
+ * correctly. A queued capture is a success by the rule above — it is kept and it will be retried — but
+ * it is not in the runtime yet, so it is not "saved", and reporting it as saved is the one thing the
+ * acknowledgement rule exists to prevent (G2.9). A surface can therefore render three states without
+ * matching prose: no code means stored, `NOT_ACKNOWLEDGED` means kept locally, and `success: false`
+ * means the click produced nothing.
+ */
+function toConversationResponse(
+  outcome: PipelineOutcome,
+  base: ConversationCaptureReport
+): MessageResponse {
+  const refusal = toCaptureResponse(outcome);
+
+  switch (outcome.status) {
+    case "rejected":
+      /**
+       * A rejected capture never reached the transport: the pipeline refused the extraction or the
+       * normalization. `EXTRACTION_FAILED` is that fact. `NOT_ACKNOWLEDGED` would blame the runtime
+       * for a conversation the runtime was never shown.
+       */
+      return conversationResponse(
+        { ...base, code: "EXTRACTION_FAILED" },
+        `The conversation could not be read (${outcome.code}): ${outcome.detail}`
+      );
+    case "paused":
+      return conversationResponse({ ...base, code: "NOT_ACKNOWLEDGED" }, refusal.error);
+    case "delivered":
+      return conversationResponse({ ...base, detail: "Stored." });
+    default:
+      return conversationResponse({
+        ...base,
+        code: "NOT_ACKNOWLEDGED",
+        detail: "Kept here — the runtime has not acknowledged it yet, so it will be retried.",
+      });
+  }
+}
+
+/**
+ * Say why no content script answered, using the manifest as the only list of sites.
+ *
+ * A throw from `chrome.tabs.sendMessage` means one of two things, and the difference decides whether
+ * the user has a next action. The origin is matched against the declared optional hosts rather than
+ * against a list held here, so this file needs no provider names at all (G1.8) and cannot fall out of
+ * step with `public/manifest.json` the next time a provider is added.
+ */
+async function explainUnreachable(pageUrl: string, err: unknown): Promise<MessageResponse> {
+  const detail = err instanceof Error ? err.message : String(err);
+  const declared = [...(chrome.runtime.getManifest().optional_host_permissions ?? [])];
+
+  let origin = "";
+  try {
+    origin = new URL(pageUrl).origin;
+  } catch {
+    // An unparseable URL is not watched, which is what the check below concludes for an empty origin.
+    origin = "";
+  }
+
+  /**
+   * Compared as whole origins rather than by prefix. A prefix test for `https://example.com` also
+   * matches `https://example.com.example.net`, and this function's whole job is to name the right cause
+   * — "not a site this extension reads" versus "the site is fine, the grant is missing". The example
+   * host stands in for any declared one on purpose: this file holds no provider names at all (G1.8).
+   */
+  const watched = declared.some((pattern) => {
+    const [scheme, rest] = pattern.split("://");
+    if (rest === undefined) return false;
+    const host = rest.replace(/\/.*$/, "");
+    return origin === `${scheme}://${host}`;
+  });
+
+  if (!watched) {
+    return conversationFailure(
+      "PAGE_NOT_WATCHED",
+      "This tab is not a conversation on a site this extension reads.",
+      { url: pageUrl }
+    );
+  }
+
+  /**
+   * The site *is* watched, so the only remaining cause worth naming is the grant. The granted set is
+   * read through the same union the options page uses — `contains` is not enough, because an unpacked
+   * install answers `false` for origins it can in fact read.
+   */
+  const granted = await allowedOrigins(declared);
+  const allowed = new Set(granted);
+  const allowPattern = declared.find((origin) => {
+    const [scheme, rest] = origin.split("://");
+    if (rest === undefined) return false;
+    const host = rest.replace(/\/.*$/, "");
+    return pageUrl.startsWith(`${scheme}://${host}`);
+  });
+
+  if (allowPattern !== undefined && !allowed.has(allowPattern)) {
+    return conversationFailure(
+      "SITE_ACCESS_DENIED",
+      `HipCortex is not allowed to read ${originLabel(allowPattern)}. Open the extension options and allow that site, then reload the page.`,
+      { url: pageUrl }
+    );
+  }
+
+  return conversationFailure(
+    "PAGE_NOT_WATCHED",
+    `That page did not accept the request (${detail}). Reload it and try again.`,
+    { url: pageUrl }
+  );
+}
+
+/**
+ * The declared origins the browser is actually letting this build read.
+ *
+ * Both answers are consulted for the reason `src/ui/site-access.ts` records at length: on an unpacked
+ * install `contains` denies origins it in fact grants. The query itself lives there so the worker's
+ * verdict and the options page's sentence cannot disagree about the same browser.
+ */
+async function allowedOrigins(declared: readonly string[]): Promise<string[]> {
+  return queryAllowedOrigins(declared);
+}
+
 async function flashBadge(text: string, ms: number): Promise<void> {
+  const colour = text === "✓" ? "#1a7f37" : "#b45309";
+  await chrome.action.setBadgeBackgroundColor({ color: colour });
   await chrome.action.setBadgeText({ text });
   setTimeout(() => {
-    void chrome.action.setBadgeText({ text: "" });
+    // Back to the standing state, not to blank: a flash that cleared the badge would erase the one
+    // persistent signal that a site is not allowed yet (G1.11).
+    void restoreBadge();
   }, ms);
+}
+
+/**
+ * The badge, as a standing statement rather than a notification.
+ *
+ * While a declared site is not allowed the extension can be installed, healthy and completely silent —
+ * which is the state the user reported as "it does nothing". The badge is the one part of the UI that
+ * is visible without opening anything, so it carries that fact until the grant happens. A permitted
+ * build shows no badge at all: a badge that is always present stops being read.
+ */
+async function restoreBadge(): Promise<void> {
+  try {
+    const missing = await ungrantedOrigins();
+    if (missing.length === 0) {
+      await chrome.action.setBadgeText({ text: "" });
+      return;
+    }
+    await chrome.action.setBadgeBackgroundColor({ color: "#b45309" });
+    await chrome.action.setBadgeText({ text: "!" });
+    await chrome.action.setTitle({
+      title: `HipCortex Memory — ${missing.length} of your AI chat sites are not allowed yet. Click to allow them.`,
+    });
+  } catch {
+    // A refused badge write is left alone rather than shown as a problem the user cannot act on.
+    // The permission question above cannot fail into a false "all clear": `ungrantedOrigins` resolves
+    // an unanswerable query to *not allowed*, deliberately (see `src/ui/site-access.ts`). That is the
+    // conservative direction, because the failure being fixed here is a silent healthy-looking install,
+    // and a `!` that turns out to be unfounded is a prompt to look at the options page — where the real
+    // list is stated in full.
+  }
+}
+
+/**
+ * The options page, opened once, so a new install is told what it needs — G1.11.
+ *
+ * Opened on `install` only. On `update` the same page would steal a tab from someone who has already
+ * made their choice, and a page that appears on every upgrade is read by nobody. The page's own site
+ * access section names the hosts and asks for the grant in one click.
+ */
+function greetFirstRun(details: chrome.runtime.InstalledDetails): void {
+  if (details.reason !== "install") return;
+  void chrome.tabs.create({ url: chrome.runtime.getURL("options.html") });
+  void restoreBadge();
+}
+
+/**
+ * Keep the badge true when the site list changes from the options page or from the browser's own
+ * extension settings, not only when the worker starts.
+ */
+function watchSiteAccess(): void {
+  chrome.permissions.onAdded.addListener(() => void restoreBadge());
+  chrome.permissions.onRemoved.addListener(() => void restoreBadge());
 }
 
 /**
@@ -227,13 +435,19 @@ function setupContextMenus() {
   });
 }
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
   setupContextMenus();
   // Enable side panel on action click (Chrome 116+)
   if (chrome.sidePanel?.setPanelBehavior) {
     chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false }).catch(() => {});
   }
+  greetFirstRun(details);
 });
+
+// A worker start is also a state change worth re-reading: Chrome restarts it after an update and
+// after eviction, and the site list may have been edited in the browser's own settings meanwhile.
+watchSiteAccess();
+void restoreBadge();
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   const settings = await getSettings();
@@ -520,6 +734,106 @@ chrome.runtime.onMessage.addListener(
             sendResponse(toCaptureResponse(outcome));
             break;
           }
+
+          case "CAPTURE_ACTIVE_TAB": {
+            /**
+             * The user asked for this conversation, by name (G1.12).
+             *
+             * This is the only capture path the setting does not gate, and the reason is in what the
+             * flag means: `autoCapture` decides whether the extension *acts on its own* when it
+             * notices a page change. A click is not the extension acting on its own, so the trigger
+             * handed to the pipeline below is `manual` — the pipeline's own rule, not an exception
+             * carved out here.
+             *
+             * Every branch answers with a code and a sentence. There is no path through this case
+             * that returns nothing, because a capture button that appears to do nothing is
+             * indistinguishable from a broken extension, which is exactly how this gap was reported.
+             */
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tab?.id === undefined) {
+              sendResponse(
+                conversationFailure("NO_ACTIVE_TAB", "There is no active tab to capture from.")
+              );
+              break;
+            }
+
+            const pageUrl = tab.url ?? "";
+            let reply: FlushCaptureReply | undefined;
+            try {
+              const request: FlushCaptureRequest = { type: FLUSH_CAPTURE_REQUEST };
+              reply = (await chrome.tabs.sendMessage(tab.id, request)) as FlushCaptureReply | undefined;
+            } catch (err) {
+              /**
+               * No content script answered. Two very different situations land here — the page is not
+               * a site this extension reads, or it is and the browser has not let the extension run
+               * there — and they are told apart by asking the manifest, which is the one list of sites
+               * this build claims. `resolveAllowed` is the same union predicate the options page uses,
+               * so the page and the worker cannot disagree about whether a site is allowed.
+               */
+              sendResponse(await explainUnreachable(pageUrl, err));
+              break;
+            }
+
+            if (reply === undefined || typeof reply.status !== "string") {
+              sendResponse(
+                conversationFailure(
+                  "PAGE_NOT_WATCHED",
+                  "That page did not answer. Reload it and try again."
+                )
+              );
+              break;
+            }
+
+            if (reply.status === "unsupported") {
+              sendResponse(
+                conversationFailure(
+                  "PAGE_NOT_WATCHED",
+                  "That page is not a chat with an AI that this extension can read."
+                )
+              );
+              break;
+            }
+
+            if (reply.status === "failed") {
+              /**
+               * The adapter's own typed refusal, carried through unchanged. This is the branch that
+               * makes a broken selector visible: with the passive path the user sees nothing at all,
+               * and here they see the slot, the code and the detail that name what changed.
+               */
+              sendResponse(
+                conversationFailure(
+                  "EXTRACTION_FAILED",
+                  `The conversation could not be read (${reply.code}): ${reply.detail}`,
+                  { providerId: reply.providerId, url: reply.url }
+                )
+              );
+              break;
+            }
+
+            const settings = await getSettings();
+            const outcome = await runCapturePipeline(
+              { providerId: reply.providerId, result: reply.result, trigger: "manual" },
+              {
+                transport: createTransport(settings),
+                actor: settings.defaultActor,
+                autoCapture: settings.autoCapture,
+                onDelivered: async () => {
+                  await lifecycle.onDelivered();
+                },
+              }
+            );
+
+            const messages = reply.result.ok ? reply.result.conversation.messages.length : undefined;
+            const base: ConversationCaptureReport = {
+              captured: toCaptureResponse(outcome).success,
+              providerId: reply.providerId,
+              url: reply.url,
+              messages,
+            };
+            sendResponse(toConversationResponse(outcome, base));
+            break;
+          }
+
           case "CAPTURE_STATUS": {
             const [settings, state, drift, failures] = await Promise.all([
               getSettings(),

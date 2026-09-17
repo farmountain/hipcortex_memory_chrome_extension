@@ -341,15 +341,82 @@ export interface ExtensionSettings {
   transportMode: TransportMode;
 }
 
+/**
+ * The shipped defaults.
+ *
+ * `autoCapture` is `true`, and that is a measured decision rather than a preference (G1.7). It is the
+ * *trigger* — whether the content script's observation of a provider page is acted on — and it is not
+ * the privacy boundary. The boundary is `apiUrl` plus the host confirmation (G7.2): with the default
+ * loopback URL nothing leaves the machine, and a non-loopback URL cannot be saved without a dialog
+ * naming that host. With the flag `false` the extension was a product that installed cleanly, showed
+ * no error, and stored nothing at all — which a user reports as "it does nothing", and which no
+ * surface contradicts, because a content script that never captures cannot say so.
+ *
+ * `injectIntoAiChats` stays `false`. The asymmetry is the point: capture reads a page the user chose
+ * to open, while injection writes into a composer as if the user had typed there. Only one of those
+ * should be waiting to happen by itself.
+ */
 export const DEFAULT_SETTINGS: ExtensionSettings = {
   apiUrl: "http://127.0.0.1:3030",
   apiKey: "",
   defaultActor: "browser-user",
-  autoCapture: false,
+  autoCapture: true,
   injectIntoAiChats: false,
   headroomMode: true,
   transportMode: "auto",
 };
+
+/**
+ * Why a user's own capture request did not produce a stored conversation (G1.12).
+ *
+ * These are separate codes rather than one failure because each has a different next action, and a
+ * surface that cannot tell them apart can only offer advice that is wrong four times out of five:
+ *
+ * - `NO_ACTIVE_TAB` — nothing to capture. Nothing to do.
+ * - `PAGE_NOT_WATCHED` — the page the user is on is not a site this extension reads. Changing that is
+ *   not the user's to do, so the message names the situation instead of suggesting a retry.
+ * - `SITE_ACCESS_DENIED` — it *is* a site this extension reads, and the browser has not let the
+ *   extension run there. The fix is a grant, so the message points at it.
+ * - `EXTRACTION_FAILED` — the page is watched and reachable and its DOM could not be read. This is
+ *   the provider's own typed failure, carried through unchanged, and it is the one case where the
+ *   captured code is worth showing: it is a fact about the site's markup.
+ * - `NOT_ACKNOWLEDGED` — the runtime did not take responsibility for the capture. The queue holds
+ *   it (G2.3); "saved" would be a lie and "lost" would be a different lie.
+ */
+export const CONVERSATION_CAPTURE_CODES = [
+  "NO_ACTIVE_TAB",
+  "PAGE_NOT_WATCHED",
+  "SITE_ACCESS_DENIED",
+  "EXTRACTION_FAILED",
+  "NOT_ACKNOWLEDGED",
+] as const;
+
+export type ConversationCaptureCode = (typeof CONVERSATION_CAPTURE_CODES)[number];
+
+/**
+ * The reply to `CAPTURE_ACTIVE_TAB` — the one thing a surface needs to tell the user what happened.
+ *
+ * It is one shape for both answers, and the counts are present exactly when they are known. The
+ * alternative — a success type and a failure type — is what makes a surface print "captured" next to
+ * a conversation it never read. `messages` is the count the adapter produced, which is the number the
+ * user can check against the page in front of them; there is no `lost`, because nothing on this path
+ * can discard a capture (G2.2).
+ *
+ * There is deliberately no field for the retention outcome. The pipeline already reports that in its
+ * own vocabulary and the worker already folds it into `MessageResponse.success`, so a field here
+ * would be a second name for the same fact — the shape of bug where a surface shows "saved" and a
+ * queue shows "unacknowledged".
+ */
+export interface ConversationCaptureReport {
+  readonly captured: boolean;
+  readonly code?: ConversationCaptureCode;
+  /** A sentence for the user, safe to render verbatim. Never the only thing set. */
+  readonly detail?: string;
+  readonly providerId?: string;
+  readonly url?: string;
+  /** How many messages the adapter read. Absent when nothing was read. */
+  readonly messages?: number;
+}
 
 /**
  * Every message the worker can receive.
@@ -399,6 +466,16 @@ export type MessageType =
    */
   | { type: "PLACE_CONTEXT"; indexedId: string }
   | { type: "CAPTURE_UPDATE"; providerId: string; url: string; result: ExtractResult }
+  /**
+   * Read the conversation on the active tab and store it, because the user asked (G1.12).
+   *
+   * It carries no payload, and that is the point: the surface cannot name a provider, cannot supply a
+   * result and cannot decide that something was captured. It asks the worker to read whatever page the
+   * user is looking at, and the worker answers with a `ConversationCaptureReport`. This is the only
+   * capture path that works with `autoCapture` off, because it is the only one the user's own gesture
+   * is the trigger for.
+   */
+  | { type: "CAPTURE_ACTIVE_TAB" }
   | { type: "CAPTURE_STATUS" }
   /**
    * The user's exit from a backlog that cannot be delivered (G4.1).

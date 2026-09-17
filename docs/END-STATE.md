@@ -61,7 +61,8 @@ Consequences that decide several goals below, and that are not negotiable within
 
 **Statement.** With `autoCapture` enabled, a conversation on ChatGPT, Claude, Grok, Gemini or
 DeepSeek is captured without user interaction, normalized into the versioned contract, and
-forwarded. `autoCapture` defaults to `false`.
+forwarded. `autoCapture` defaults to `true`; what gates capture in practice is the site grant
+(G1.10), which no install has until the user gives it.
 
 **Interpretation locked.** Capture means the **full conversation transcript** (ordered messages
 with roles), not the last message and not a summary. Reason: a message-level capture cannot
@@ -90,6 +91,37 @@ a duplicate.
 | G1.7 | With `autoCapture` false, no adapter is selected and no event is produced on any provider page | `npm test -- tests/capture/pipeline.spec.ts` |
 | G1.8 | No provider hostname or selector exists outside `src/capture/**` | `npm test -- tests/quality/source-scans.spec.ts` |
 | G1.9 | `optional_host_permissions` lists all five canonical hosts; `host_permissions` lists none | `npm test -- tests/quality/manifest.spec.ts` |
+| G1.10 | Site access resolves through `contains` **or** `getAll`, so a build is never described as denied when it can read a page; an origin is reported as allowed only if some answer vouches for it, and an unanswerable query counts as **not** allowed | `npm test -- tests/ui/site-access.spec.ts` |
+| G1.11 | While any declared site is ungranted, the toolbar badge reads `!` in the warning colour with a tooltip naming the count; when all are granted the badge is blank; the options page opens on `install` and not on `update` | `npm test -- tests/router/first-run.spec.ts` |
+| G1.12 | `CAPTURE_ACTIVE_TAB` captures the active tab's whole conversation as a `manual` trigger, which is not gated by `autoCapture`, and reports it as stored / kept-for-retry / a typed failure — never as stored when the runtime did not acknowledge it | `npm test -- tests/router/capture-active-tab.spec.ts` |
+| G1.13 | The popup and the side panel each carry a "Capture this conversation" button and state the outcome in the same three renderable states; the popup's passive switch reports the stored setting and writes only the field it changed | `npm test -- tests/surfaces/conversation-capture.spec.ts` |
+
+**Rationale for G1.10 – G1.13.** These four were added after the product was tested by its first real
+user, whose report was that it stored nothing. The cause was not a broken extractor: an install could be
+healthy, capturing correctly, and still store nothing, because two switches that decide whether anything
+happens were unreachable or invisible — the site grant (G1.10), and the trigger (G1.12). The user's own
+words, *"it don't even store anything of my conversation with chatgpt and claude, you piece of useless
+junk"*, describe a UI defect that no existing criterion could fail on, which is what makes it a gap in
+this document rather than a bug in the code.
+
+Three consequences are locked here rather than left to the implementation:
+
+1. **`DEFAULT_SETTINGS.autoCapture` is `true`.** G1.7 (flag false ⇒ inert) is unchanged and still
+   proved. What changed is the shipped default: with the flag `false`, a fresh install captured
+   nothing, raised no error, and said nothing — so the privacy *intent* produced the reported failure.
+   The boundary that G1.7 was reaching for is enforced elsewhere and does not depend on this flag:
+   `host_permissions` is loopback-only (G7.1), `apiUrl` must be loopback in `auto`/`consumer` mode, a
+   non-loopback URL needs a named confirmation plus a banner (G7.2), and capture does not begin on a
+   site the user has not granted (G1.10). The flag now decides only whether pages are *watched*.
+2. **A `manual` trigger is not gated by `autoCapture`.** Asking for the conversation in front of you is
+   not the extension acting on its own; a user with passive capture off must still have the button.
+3. **Provider names stay out of `src/background.ts` and `src/api/**` (G1.8).** The badge, the first-run
+   page and the router's refusals therefore name hosts only through the manifest, and the surfaces that
+   do name them read `optional_host_permissions`.
+
+**Falsification condition for G1.10 – G1.13.** If a build can be installed, be allowed to read a site,
+and still store nothing on a click that reports success, these criteria are not met. If any surface
+reports an unacknowledged capture as stored, G2.9 is breached regardless of what these four say.
 
 ---
 
