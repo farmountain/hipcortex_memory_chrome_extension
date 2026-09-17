@@ -37,20 +37,8 @@ reply is what the second row names:
 GET /health  : HTTP 200 {"service":"hipcortex","status":"ok","version":"3.11.0"}
 ```
 
-The extension reads that field at runtime and reports it on the popup's health indicator. It is the
-only version either side knows about, and it is not a requirement — there is no constant in this
-repository that the runtime is compared against, so extension and server are aligned by measurement
-rather than by a pinned number.
-
-One asymmetry is recorded here because it looks like drift and is not. The HipCortex source tree on
-this machine declares `3.13.0` in its `Cargo.toml`, while the binary actually running answers
-`3.11.0` — the source has moved ahead of the built server. A `3.13.0` server has therefore **not**
-been measured by anything in this repository, and the row above keeps saying `3.11.0` for that
-reason. This repository is the perception layer and never builds or ships the core, so that is an
-observation about the machine, not a task in this tree.
-
-Those two numbers are deliberately independent, and the reason is worth stating because it looks
-like drift otherwise. The extension **pins no core version**. It reads the runtime's version from
+The two rows are deliberately independent, and the reason is worth stating because it looks like
+drift otherwise. The extension **pins no core version**. It reads the runtime's version from
 `GET /health` and reports it on the popup's health indicator; it does not gate on it, refuse a
 capture because of it, or carry a copy of it (G7 — a pre-authorised remote host is the thing this
 repository refuses, and a version allowlist is a different mechanism with the same failure mode:
@@ -59,6 +47,13 @@ the extension deciding, from a stale constant, that the user's own core is unacc
 So a core later than `3.11.0` is not refused — it is *unmeasured*. Every claim in
 [docs/PROTOCOL.md](./docs/PROTOCOL.md) about what the runtime answers is a dated observation of
 `3.11.0`, and re-running the probes against a newer core is a task, not an assumption.
+
+One asymmetry is recorded here because it looks like drift and is not. The HipCortex source tree on
+this machine declares `3.13.0` in its `Cargo.toml`, while the binary actually running answers
+`3.11.0` — the source has moved ahead of the built server. A `3.13.0` server has therefore **not**
+been measured by anything in this repository, and the version row above keeps saying `3.11.0` for
+that reason. This repository is the perception layer and never builds or ships the core, so that is
+an observation about the machine, not a task in this tree.
 
 ## Install
 
