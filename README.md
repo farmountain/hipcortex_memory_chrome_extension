@@ -198,6 +198,11 @@ npm run watch          # tsc --watch (does not re-copy assets)
 npx tsc --noEmit       # typecheck only
 npm run lint           # ESLint flat config over src/ and tests/
 npm test               # Vitest: a node project and a jsdom project
+npm run verify         # typecheck + lint + test + build — exactly these four, in this order
+npm run test:traceability # every criterion in docs/END-STATE.md is cited, and every cited test path exists
+npm run test:clarity   # every question in docs/clarity-ledger.json has a state, and an exit where it needs one
+npm run test:browser   # loads dist/ unpacked into a real Chrome and drives the surfaces over CDP
+npm run test:browser:providers # loads dist/ unpacked and observes a capture from five provider fixtures
 npm run clean          # removes dist/
 npm run package        # builds, then zips dist/ into hipcortex-chrome-extension-v<version>.zip
 npm run install:host   # registers the native messaging host for this user (no elevation)
@@ -205,6 +210,11 @@ npm run uninstall:host # removes it again, per user
 ```
 
 Load unpacked: `chrome://extensions` → Developer mode → Load unpacked → select `dist/`.
+
+`npm run verify` is the gate chain and nothing else is folded into it: the traceability, clarity and
+browser commands are separate on purpose, because they read the plan documents or need a browser and a
+built `dist/`, and a gate that fails for a reason unrelated to the code under change is a gate people
+learn to skip. Run them when the change touches what they read.
 
 Consumer Mode needs one more step, because a browser extension cannot install a native program
 itself — no extension API can write a registry key, and `permissions` in `public/manifest.json`
