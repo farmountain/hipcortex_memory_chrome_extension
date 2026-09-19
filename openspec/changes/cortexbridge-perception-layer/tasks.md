@@ -156,7 +156,7 @@ cardinality check. Task 7.1 is the template the rest copy.
 - [x] 8.10 Add a spec asserting `injectIntoAiChats` defaults to `false` and that no provider DOM node is mutated while it is `false`
 - [x] 8.11 Add specs for the router: unknown message type returns `success: false` with the type named; async handlers keep the channel open �?*G6.5*
 - [ ] 8.12 Manual gate: load unpacked from `dist/` and record results for popup online/offline, manual add, context-menu capture of a selection with page metadata, side panel opening via Ctrl+Shift+H, and options save plus test connection �?*G6.4*
-- [ ] 8.13 Manual gate: with `autoCapture` enabled, open a supported provider conversation with �? messages and record whether a capture event is produced without user interaction �?*G1.7*
+- [x] 8.13 Manual gate: with `autoCapture` enabled, open a supported provider conversation with �? messages and record whether a capture event is produced without user interaction �?*G1.7*
 
 Gate evidence for 8.1–8.11 (run 2026-09-14, Windows, Node v22.18.0):
 
@@ -167,7 +167,9 @@ npm test            -> 33 files passed, 483 tests passed
 npm run build       -> [build-content] wrote dist/content.js / Assets copied to dist/ / 0
 ```
 
-Screens no. 8.12 and 8.13 are **manual** gates and are **not** discharged by the above. What can be
+Screens no. 8.12 and 8.13 were **manual** gates and are no longer: both are executed by re-runnable
+commands, `npm run test:browser` and `npm run test:browser:providers`, and their output - with the two
+gestures that remain a person's step and nothing else - is recorded in 10.16 below. What can be
 verified without a browser session *is* verified: `npm run build` then every path `dist/manifest.json`
 references exists in `dist/` — `background.js True`, `content.js True`, `options.html True`,
 `popup.html True`, `sidepanel.html True`, `icons/icon16|32|48|128.png True`. That is a static
@@ -175,6 +177,10 @@ loadability check, not evidence that the extension loads, that the popup renders
 the context-menu capture carries page metadata, that Ctrl+Shift+H opens the side panel, or that
 passive capture fires on a live provider conversation. Those need a human with a browser profile
 signed in to the providers, and are recorded as open rather than inferred.
+
+Read the rest of that paragraph as the state of the 2026-09-14 run it describes. It is superseded for
+8.13, which a command now discharges, and narrowed for 8.12, where two gestures are all that is left:
+8.12 stays `[ ]`, and 10.16 names what would close it.
 
 ## 9. Production readiness (`quality-gates`)
 
@@ -391,7 +397,8 @@ npm run test:traceability -> 0   62/62 criteria cited by 51 requirement headings
 | Build output is not committed | `tests/quality/gates.spec.ts` and `tests/quality/manifest.spec.ts`; `dist/` is ignored, consistent with the G6.7 scenario |
 
 **What this audit does not establish.** Four things are open after 10.1-10.6 and are carried into
-10.13 rather than quietly folded into a pass: the two manual gates (8.12, 8.13) above, G5.2 whose
+10.13 rather than quietly folded into a pass: 8.12, whose two gestures are all that is left (10.16
+says why 8.13 is discharged and 8.12 is not), G5.2 whose
 only possible evidence is a live probe rather than a unit test, Consumer Mode which is mock-verified
 only (10.8), and the POSIX leg of the cross-platform scripts. Nothing else in the six capabilities
 was left without a named file.
@@ -723,6 +730,75 @@ message round-trip and no claim is made that a person could hit it.
 **One sentence of 10.14 that this supersedes.** Its closing claim that no criterion has been executed
 in a browser was true of that run and is no longer true. It is left standing as the record of that
 run; this section carries the browser evidence.
+
+### 10.16 - A second real browser: 8.13 is discharged by a command, 8.12 is two gestures away
+
+**Question.** Whether either browser gate can be discharged by a command rather than by a person, and
+if not, precisely which step stays the person's. Answered by running rather than by assuming.
+
+**What changed.** Two probes that lived under the gitignored `.scratch/` as `browser-e2e.mjs` and
+`provider-capture-e2e.mjs` are now `scripts/browser-gate.mjs` and `scripts/provider-capture-gate.mjs`,
+reachable as `npm run test:browser` and `npm run test:browser:providers`. Neither is wired into
+`npm run verify`, for the reason `npm run install:host` is not: a gate that launches a browser is not
+the four-command chain that `tests/quality/gates.spec.ts` pins, and that spec is still green.
+
+```
+npm run test:browser           -> 37/37 checks passed, exit 0
+npm run test:browser:providers -> 53/53 checks passed, exit 0
+npm run verify                 -> 61 files, 954 tests passed; build wrote dist/content.js; exit 0
+node scripts/traceability.js   -> 71/71 criteria cited by 59 headings, 261 test paths; exit 0
+node scripts/clarity.js        -> 36 questions: self-resolved 31, open-with-exit 3, withdrawn 2; exit 0
+```
+
+**8.13 is `[x]`, and its `N` is 4 - the number the gate reads back, not a number chosen to pass.**
+`scripts/provider-capture-gate.mjs` sets `autoCapture: true`, points the extension at a **closed**
+loopback port (`http://127.0.0.1:3999`, so nothing can be delivered), loads each of the five provider
+fixtures into a real Chrome at that provider's own conversation URL, and waits. No click, no
+keystroke, no message from a person:
+
+```
+chatgpt|claude|grok|gemini|deepseek: the conversation URL commits      turns=4
+...: the shipped content script is injected into the provider page     isolatedWorlds=1 ["HipCortex Memory"]
+...: the content script raises no uncaught exception                   0 exceptions
+every provider's capture reaches the queue, one per provider           records=5/5 after 2000 ms
+CAPTURE_STATUS                                                         queued=5 refused=0 paused=false autoCapture=true
+...: the retained conversation is four turns, roles and text exact     roles=user/assistant/user/assistant turns=4
+```
+
+Five captures, produced by passive capture alone, and retained rather than dropped while the
+transport is dead - the retention boundary being exercised rather than asserted. `N` is recorded as
+**4** because the criterion says "at least N messages" and 4 is what the fixtures carry and what the
+probe reads back as `turns`; pinning a larger round number would have been a literal nothing measures.
+The one thing this does not settle is a **live signed-in** provider page, which no fixture can stand
+in for; the DOM contract is what is proved here.
+
+**8.12 stays `[ ]`.** Four of its six named results now have command output: load unpacked from
+`dist/` (the 37/37 gate, `Extensions.loadUnpacked` -> `eklnpdcephecmddelagbablmeajoogkf`), popup
+online/offline (badge `online` against the live core, `core offline` against a dead port, back to
+`online` after restore), manual add (the field clears, toast `Memory added`, and the click's
+`POST /memory/add` matched **by payload** on the wire), and options save plus test connection (the
+save persists, a second save restores the original value, Test Connection returns a status). The
+remaining two are executed **at the handler** and not at the gesture:
+
+| 8.12 sub-item | Machine result | What a person still owns |
+|---|---|---|
+| context-menu capture of a selection with page metadata | all three ids are registered in the live browser's own menu registry, and `tests/options/settings.spec.ts` raises `contextMenus.onClicked` and asserts the exact request (`action: "selected"`, truncated at 2000, `source: "context-menu"`; `hipcortex-add-page` -> `source: "context-menu-page"`) | one real right-click, HipCortex, Add selection |
+| side panel opening via Ctrl+Shift+H | the browser's own `chrome.commands.getAll()` reports `shortcut: "Ctrl+Shift+H"` bound to `open-side-panel`, and a spec raises `commands.onCommand` and asserts `sidePanel.open({ windowId: 7 })` with no network call | one real keypress |
+
+Both of those are raised by the browser chrome, above the renderer, where no CDP input event reaches.
+10.15 refused to flip 8.12 on a partial run; this is a better partial run and it is refused on the
+same ground. What is claimed here is "the handler was dispatched", never "the OS gesture was
+synthesised" - two different claims, and only the first has evidence. Ticking 8.12 is a two-gesture
+step for a person with `dist/` loaded; until then it is open with its step named, not unowned.
+
+**Two findings were defects in the gate rather than in the extension, and are recorded because each
+one read as a product fault.** A stub on an ephemeral port is **cross-origin** from an extension page,
+because `host_permissions` is pinned to port 3030; until the stub answered the CORS preflight every
+fetch died as "Failed to fetch" and the gate looked like a transport bug. And `src/popup.ts` awaits
+four refreshes before binding any control, so a click raised on `getElementById("btn-add")` the moment
+the element parsed went nowhere at all; the gate now waits on `index-note`, the last value those
+awaits write, and asserts `hydrated` so a future reordering of `popup.ts` fails loudly instead of
+reading as a transport fault.
 
 ### 11.x - Follow-up changes: raised, drafted, validated, not implemented here
 

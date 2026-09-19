@@ -30,7 +30,14 @@
 - [x] 4.2 Run the traceability gate and confirm every cited criterion resolves to a requirement
       heading
 - [ ] 4.3 Update `docs/END-STATE.md` to move G4.5 out of the follow-up list once the manual gate has
-      been run and its output recorded
+      been run and its output recorded — **blocked on a person, not forgotten.** The gate is run by
+      loading `dist/` unpacked, opening a real provider page whose composer the adapter knows, placing
+      a hit's context into that composer and recording what appeared; no command in this repository
+      can raise that action, so the tick stays open until a person has. It closes when that run is
+      written up under section 8 below and this line is ticked in the same pass as the
+      `docs/END-STATE.md` move. If a future window reaches for a shortcut: `npm run test:browser` and
+      `npm run test:browser:providers` do **not** close it — they drive a fixture DOM and a fixture
+      conversation, and a live signed-in composer is precisely what they cannot stand in for.
 
 ## 5. The action a user takes (G4.5, tasks 2.3, 3.1)
 
@@ -108,7 +115,17 @@ the boundary is stated and also a place where a call site gets written next — 
 injection tree now describe the routes they mean instead of naming them. That is a deliberate cost:
 the gate is worth more than the sentence.
 
-Task 4.3 is left unticked on purpose. It is the manual gate: a person has to load the unpacked build,
-open a real provider page, place context into a real composer and record what happened. No spec in this
-repository can discharge it, and ticking it from a green test run would be the one claim in this change
-that is not evidence-backed.
+Task 4.3 is left unticked on purpose, and the task line itself now says so, so that it reads as blocked
+rather than as abandoned. It is the manual gate: a person has to load the unpacked build, open a real
+provider page, place context into a real composer and record what happened. No spec in this repository
+can discharge it, and ticking it from a green test run would be the one claim in this change that is not
+evidence-backed.
+
+What a person should run *before* doing the part only they can do, so the manual step is short and its
+result is unambiguous: `npm run build`, then `npm run test:browser:providers`, which loads that `dist/`
+unpacked into a real Chrome and shows the five fixture conversations captured under `autoCapture`
+against a core on a closed port. Neither that command nor any other reaches a composer. The injection
+path is covered by `tests/router/injection.spec.ts`, `tests/capture/injection.spec.ts`,
+`tests/options/inject.spec.ts` and `tests/surfaces/placement.spec.ts` — between them they drive the
+message, the refusal and the DOM write into a fixture element, and none of them touches a provider's own
+composer widget, which is the one object the manual gate exists to involve.

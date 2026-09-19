@@ -9,10 +9,10 @@
   "stages": [
     { "stage": "goals", "entries": ["Q1", "Q14"] },
     { "stage": "acceptance-criteria", "entries": ["Q2", "Q15", "Q19"] },
-    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24", "Q25", "Q26", "Q27", "Q28", "Q29", "Q30", "Q35"] },
+    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24", "Q25", "Q26", "Q27", "Q28", "Q29", "Q30", "Q35", "Q37", "Q38", "Q40", "Q41", "Q42"] },
     { "stage": "unknowns", "entries": ["Q4", "Q5", "Q11", "Q20", "Q21"] },
     { "stage": "planning", "entries": ["Q6", "Q9", "Q18"] },
-    { "stage": "react-iterations", "entries": ["Q7", "Q8", "Q10", "Q16", "Q17", "Q31", "Q32", "Q33", "Q34", "Q36"] }
+    { "stage": "react-iterations", "entries": ["Q7", "Q8", "Q10", "Q16", "Q17", "Q31", "Q32", "Q33", "Q34", "Q36", "Q39"] }
   ],
   "questions": [
     {
@@ -787,6 +787,131 @@
       ],
       "resolution": "The documented trigger was incomplete in three documents at once, and the correction is a second precondition rather than a wider first one. The refusal that started this was PHI, not PII: the runtime applies two preconditions, each names the pattern it matched, and PHI is keyed on a code shape rather than on numbers - an upper-case letter followed by exactly two digits, delimited, is refused, while the lower-case form, the one-digit form, the three-digit form and the two-letter form all store. The PII precondition the document already had is real and separate, at risk 0.90 against the PHI precondition's 0.85, and its published phone example is correct; what the document was missing is that its dashed form is not phone-shaped, since the runtime reports ten digits including the separators for a six-six token and slides to find a ten-digit window inside an eight-six one, while a date, a five-four pair and a nine-one pair are not matched at all. What made this critical rather than cosmetic is the collision: the repository's own end-state document numbers its host-registration section with a token of exactly the PHI shape, so a note quoting it cannot be stored as a memory, and the same class of token - a two-digit code or reference - is ordinary conversational text where a phone number is not. Three things were therefore changed and one was deliberately not. docs/PROTOCOL.md section 3.2 now records both preconditions, keeps the runtime's own printed pattern literals as the evidence rather than asserting a regular expression, and states that the refusal is not length-shaped and that a stored record may carry a near-duplicate warning. docs/END-STATE.md open risk 6 and its live-verification row now name both preconditions. The rule that the extension must never pre-filter, redact or rewrite a capture to get past either precondition is unchanged and unweakened, and no file under src/ was touched: the question was what the contract says, and the answer is more of it rather than different behaviour.",
       "doesNotEstablish": "That these are the only preconditions. Two were observed and one of them was undocumented until this entry, so a third that no probe here reached may exist, and the reading is by construction limited to what was probed. The PHI rule is stated as the five payloads that were tested and not as an expression, and which fields are scanned was not established either - PII was previously verified against actor and target, and every PHI probe varied target alone, so a producer that puts the same token in an id or an action has not been measured. It does not establish the relative likelihood of either refusal on real captured text, only the shape of the token each one matches. And it does not begin to specify what the extension should do about a refusal: classification, counting apart from a transient failure and reporting the runtime's own error string verbatim remain cortexbridge-retention-boundary task 5.2's, and this change amended documentation only."
+    }
+,
+    {
+      "id": "Q37",
+      "stage": "validation-planning",
+      "critical": true,
+      "question": "Task 8.12 has been recorded as a manual gate no spec can discharge since 2026-09-14, and 10.15 refused to tick it on a partial run. Can the screen be driven by a re-runnable command instead, and if not, exactly which step is a person's?",
+      "state": "self-resolved",
+      "attempts": 3,
+      "artifactsTried": [
+        "openspec/changes/cortexbridge-perception-layer/tasks.md section 10.15 - it names the three sub-items executed in 2026-09-14 and the three that were not, with a reason for each, which is what turned the residue into a list of gestures rather than of missing tools",
+        "public/manifest.json - host_permissions is pinned to port 3030 only, which is why a stub for this gate had to be loopback and why any other port is cross-origin from an extension page",
+        "scripts/browser-gate.mjs - the promoted probe, loading dist/ over CDP into a real Chrome",
+        "tests/options/settings.spec.ts - the jsdom project, whose chrome mock already carries contextMenus and commands, so the two handlers chrome itself must raise have somewhere to be driven",
+        "src/background.ts - the two listeners read directly, to confirm they are ordinary code rather than anything privileged"
+      ],
+      "evidence": [
+        "$ npm run test:browser -> 37/37 checks passed, exit 0, and the five screens 8.12 names are executed: Extensions.loadUnpacked on dist/ returns id eklnpdcephecmddelagbablmeajoogkf, the popup badge goes online then core offline then online, options save persists and a second save restores the original value, and the manual add clears the field with toast Memory added",
+        "$ npx vitest run tests/options/settings.spec.ts -> 14 passed, exit 0; two added describes raise contextMenus.onClicked and commands.onCommand and assert the exact POST each handler produces",
+        "$ node --check scripts/browser-gate.mjs -> exit 0, after a nested backtick inside a template literal caused SyntaxError: missing ) after argument list at line 976",
+        "$ node scripts/traceability.js -> criteria cited 71/71 by 59 requirement headings, exit 0"
+      ],
+      "resolution": "Eleven of the twelve named results are now output from a command, and the residue is exactly two gestures. Load unpacked, popup online/offline, manual add, options save and test connection, all three context-menu ids present in the browser's own registry, the Ctrl+Shift+H binding as chrome.commands.getAll() reports it, and all five providers' passive captures are all re-runnable. What no command can produce is the OS context-menu click and the physical keystroke, because both are raised by the browser chrome above the renderer where no CDP input event reaches. The handlers they invoke are ordinary code and are driven for real by spec, so what this repository claims is that the handler was dispatched, never that the gesture was synthesised. 8.12 stays unticked for those two gestures alone; 8.13 ticks because the provider probe observes the capture itself rather than a handler behind it.",
+      "doesNotEstablish": "That a person has performed either gesture, and therefore that the path through Chrome's native menu and its global shortcut works end to end. It also does not establish that a fixture DOM matches a live provider page, so a signed-in conversation can still exercise a composer, a virtualised turn list or an adapter rung that no fixture reproduces."
+    },
+    {
+      "id": "Q38",
+      "stage": "validation-planning",
+      "critical": true,
+      "question": "The manual-add screen failed on a stub that answered curl, while an independent ADD_MEMORY sent from the same extension page was acknowledged. Is the popup's transport broken?",
+      "state": "self-resolved",
+      "attempts": 3,
+      "artifactsTried": [
+        "scripts/browser-gate.mjs - the stub's own request log showed only OPTIONS /health and OPTIONS /memory/add and never a GET or a POST, so the fetch never completed",
+        "public/manifest.json - host_permissions is pinned to http://127.0.0.1:3030/*, so a stub on an ephemeral port is a different origin and the extension page must pass a preflight",
+        "docs/END-STATE.md G7 - a non-loopback host in host_permissions is a regression, so moving the stub onto 3030 or widening the manifest was not available",
+        "tests/helpers/http.ts - the unit harness stubs fetch outright, which is why the same code path is green in jsdom and could not have shown this"
+      ],
+      "evidence": [
+        "the stub before the fix -> seen = [OPTIONS /health 0B, OPTIONS /memory/add 0B], every fetch rejected as a failure to fetch, against a stub that was answering curl on the same port",
+        "the wire after the stub answered the preflight -> OPTIONS /health, GET /health, OPTIONS /memory/add, POST /memory/add 118B, then POST /memory/add 112B",
+        "$ npm run test:browser -> 37/37 checks passed, exit 0, with the click's POST matched by payload rather than by position in the log"
+      ],
+      "resolution": "The transport was never broken; the harness was. A stub on an ephemeral port is cross-origin from an extension page because host_permissions is deliberately pinned to port 3030, so the browser sent a preflight the stub did not answer and every request died before reaching the product. The stub now answers OPTIONS with 204 plus the CORS headers and spreads the same headers into every reply. It is recorded because the failure mode is misleading in a specific way: a refused preflight surfaces as an unqualified fetch failure, which reads as a transport fault inside the extension and sends a reader to the wrong file.",
+      "doesNotEstablish": "That the extension works against a real core on a host the manifest does not cover. If anything it shows the opposite: host_permissions is loopback-only and pinned to one port, so a user who points the extension at another host relies on that host answering CORS, and no check in this repository covers that case."
+    },
+    {
+      "id": "Q39",
+      "stage": "react-iterations",
+      "critical": true,
+      "question": "The popup's Add button was present, its click was raised, and an independent ADD_MEMORY from the same page was acknowledged - yet no POST /memory/add came from the click. Which layer dropped it?",
+      "state": "self-resolved",
+      "attempts": 2,
+      "artifactsTried": [
+        "src/popup.ts - the DOMContentLoaded handler awaits refreshHealth, refreshEgressBanner, refreshCaptureStatus and refreshIndexStatus before it binds any control",
+        "public/popup.html - index-note is emitted empty and is filled by refreshIndexStatus, the last of those awaits, which makes it the only in-page signal that binding has happened",
+        "scripts/browser-gate.mjs - its readiness guard was a check that the field and button exist, which succeeds the moment the DOM parses, so the click was raised on a button with no listener"
+      ],
+      "evidence": [
+        "the run before the fix -> the independent probe reported acknowledged = true and the wire showed POST /memory/add 112B, while the click's own record was null, so the channel worked and the click had produced nothing",
+        "the guard replaced with a poll on the index-note text -> hydrated = true and the post-click state read fieldAfter = empty, errorVisible = false, toast = Memory added",
+        "$ npm run test:browser -> 37/37 checks passed, exit 0, including a record asserting hydrated, so a future reordering of the awaits in src/popup.ts fails the gate loudly instead of being read as a transport fault"
+      ],
+      "resolution": "The listener was not attached yet, and element presence is not listener presence. popup.ts performs four awaited refreshes before it binds, so a harness that waits only for the element to exist is racing the code that makes the element do anything. The gate now waits on index-note, the last value those awaits write, and asserts that hydration completed. This is a harness defect rather than a product defect, and it is recorded because it produced a failure that looked exactly like a broken transport.",
+      "doesNotEstablish": "That no user can hit the same window. An extension page paints before its handlers bind, so a click landing inside those few milliseconds is lost; the window is two local message round trips, and no claim is made that a person can reach it, only that the harness used to sit inside it."
+    },
+    {
+      "id": "Q40",
+      "stage": "validation-planning",
+      "critical": false,
+      "question": "chrome.commands.getAll() in a loaded browser listed a third command that this manifest does not declare. Is the extension registering an extra shortcut?",
+      "state": "self-resolved",
+      "attempts": 1,
+      "artifactsTried": [
+        "public/manifest.json - it declares open-side-panel and quick-add-memory and nothing else",
+        "scripts/browser-gate.mjs - its assertion pinned a count of two and printed the third entry verbatim, which named it"
+      ],
+      "evidence": [
+        "the registry as the browser reported it -> three entries, the first being _execute_action with an empty shortcut and an empty description, then open-side-panel with Ctrl+Shift+H, then quick-add-memory",
+        "$ npm run test:browser -> 37/37 checks passed, exit 0, after the assertion changed from a count to a name-presence check over the two declared commands"
+      ],
+      "resolution": "The third entry is Chrome's own _execute_action, created for the browser action and declared by no manifest here. The assertion was wrong, not the manifest: a count taken from chrome.commands.getAll() counts the browser's registry, not this extension's declarations. The check now asserts that both declared names are present with a non-empty description, which is the property the task actually cares about.",
+      "doesNotEstablish": "That every other entry in that registry belongs to Chrome rather than to this extension. One extra entry was accounted for and the assertion no longer depends on the total, so a future Chrome addition cannot break it, but a manifest that silently gained a third command would not be caught by this check either."
+    },
+    {
+      "id": "Q41",
+      "stage": "validation-planning",
+      "critical": true,
+      "question": "8.13 asks for a supported provider conversation with at least N messages and a recorded capture produced without user interaction. Does that require a signed-in browser profile, or does the fixture DOM satisfy it?",
+      "state": "self-resolved",
+      "attempts": 2,
+      "artifactsTried": [
+        "openspec/changes/cortexbridge-perception-layer/tasks.md section 10.15 - it recorded the gate as not approached, and the obstacle it named was tooling: a browser that cannot host dist/ cannot observe a capture at all",
+        "tests/fixtures/<provider>/conversation.html - every fixture carries the same four turns in the same order under the same roles",
+        "scripts/provider-capture-gate.mjs - it loads the unpacked build, sets autoCapture, points the extension at a closed loopback port, and waits without clicking anything",
+        "docs/END-STATE.md criterion G1.7 - the wording the tick has to be traceable to, which is why N had to match what the gate actually measures"
+      ],
+      "evidence": [
+        "$ npm run test:browser:providers -> 53/53 checks passed, exit 0; per provider the conversation URL commits with turns=4, isolatedWorlds=1 named HipCortex Memory, and 0 exceptions",
+        "the same run -> every provider's capture reaches the queue, one per provider and no duplicates, records=5/5 after 2000 ms of polling, with CAPTURE_STATUS reporting queued=5 refused=0 paused=false autoCapture=true against a core on a closed port http://127.0.0.1:3999",
+        "the same run -> chatgpt|claude|grok|gemini|deepseek: the retained conversation is four turns, roles and text exact, roles=user/assistant/user/assistant turns=4",
+        "the same run -> the live core holds no record for the probe's actor, total=0, so the probe wrote nothing to the running runtime"
+      ],
+      "resolution": "The signed-in profile is not required for the DOM half, and the criterion is recorded against the fixtures rather than against an unstated live page. N is 4 because that is what the fixtures carry and what the probe reads back as turns; asserting a larger round number would have been a literal that nothing measures. The proof is stronger than a unit test where it matters here - a real Chrome, the shipped content script, the real selector ladders, a transport that is dead rather than mocked - and weaker in one way that is now stated rather than glossed: no fixture is a live signed-in page.",
+      "doesNotEstablish": "That a live signed-in provider page behaves the same. A fixture is a frozen DOM, so a provider that virtualises its turn list, lazy-loads older turns, or gates its composer behind an experiment is not covered, and 8.13's tick is a claim about the DOM contract rather than about production traffic."
+    },
+    {
+      "id": "Q42",
+      "stage": "validation-planning",
+      "critical": true,
+      "question": "8.12's last two results - a context-menu capture of a selection, and a side panel opened via Ctrl+Shift+H - cannot be raised by any automated input, because both are handled by the browser chrome above the renderer. What closes them?",
+      "state": "open-with-exit",
+      "attempts": 3,
+      "artifactsTried": [
+        "scripts/browser-gate.mjs - it registers and re-registers all three menu ids and reads chrome.commands.getAll(), which proves registration and proves nothing about the gesture",
+        "CDP Input.dispatchKeyEvent - a key event is delivered to the renderer, and chrome.commands.onCommand is resolved above it, so the shortcut cannot be fired this way",
+        "tests/options/settings.spec.ts - it raises both handlers directly, which covers the behaviour behind each gesture and cannot cover the gesture itself",
+        "openspec/changes/cortexbridge-perception-layer/tasks.md section 10.15 - it refused to tick 8.12 on a partial run, and that refusal is the standard this entry keeps"
+      ],
+      "evidence": [
+        "$ npm run test:browser -> 37/37 checks passed, exit 0, with all three context-menu ids reported as already present in a live registry and shortcut Ctrl+Shift+H bound to open-side-panel",
+        "$ npx vitest run tests/options/settings.spec.ts -> 14 passed, exit 0, covering the exact request each context-menu branch produces and sidePanel.open({windowId: 7}) for the shortcut branch"
+      ],
+      "exitCondition": "A person with dist/ loaded through chrome://extensions performs the two gestures once - a right-click on a selection, then the HipCortex menu and Add selection, then Ctrl+Shift+H - records the capture that reaches the core and the side panel that opens, and writes both results into section 8 of openspec/changes/cortexbridge-perception-layer/tasks.md, which is the section that can then tick 8.12 and supersede this question.",
+      "doesNotEstablish": "Nothing here is claimed as established. The handlers behind both gestures are covered by spec and the gestures themselves have been performed by no one, which is the entire content of this entry."
     }
   ]
 }

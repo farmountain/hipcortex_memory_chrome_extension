@@ -1,13 +1,19 @@
 # End-State Goals and Measurable Acceptance Criteria
 
 **Status:** authoritative for scope decisions. **Owner:** this repository (perception layer).
-**Last verified:** 2026-09-14. Every criterion this repository owns has been executed: the gate
+**Last verified:** 2026-09-19. Every criterion this repository owns has been executed: the gate
 chain was run and each command's exit code recorded, the whole spec suite was run, and the
-end-to-end round trip was executed against a live core at `127.0.0.1:3030`. The quoted output is in
-`openspec/changes/cortexbridge-perception-layer/tasks.md`, groups 9 and 10. What is **not** executed
-is named rather than hidden: the two browser-manual gates (tasks 8.12 and 8.13), Consumer Mode's
+end-to-end round trip was executed against a live core at `127.0.0.1:3030`. The two browser gates
+that used to be manual are commands now: `npm run test:browser` (37/37) and
+`npm run test:browser:providers` (53/53), both against a real Chrome with `dist/` loaded — which
+discharges 8.13 outright and leaves 8.12 missing only its two browser-chrome gestures. The quoted
+output is in `openspec/changes/cortexbridge-perception-layer/tasks.md`, groups 9 and 10. What is
+**not** executed is named rather than hidden: task 8.12's context-menu click and Ctrl+Shift+H
+keypress, raised by the browser chrome above the renderer where no automated input reaches (8.12
+stays open for exactly those two and nothing else), Consumer Mode's
 last leg — **Chrome itself** handing the port to a loaded extension, the one step no spec can run
-(tasks 10.8 and 10.14, risk 2) — the POSIX leg of the cross-platform scripts (task 10.13), and
+(tasks 10.8 and 10.14, risk 2) — the POSIX leg of the cross-platform scripts (task 10.13), a **live
+signed-in** provider page, which G4.4 and G4.5 both want and which no fixture can stand in for, and
 everything core-side in G4 and G5. This document exists so that no goal here is ever reported as
 achieved without a quoted command output.
 
@@ -46,13 +52,13 @@ Consequences that decide several goals below, and that are not negotiable within
 
 | Goal | Statement | Owner | Status |
 |------|-----------|-------|--------|
-| **G1** | Capture conversations from all five providers | this repo | **verified by spec**; live capture gated by the browser-manual gate 8.13 |
+| **G1** | Capture conversations from all five providers | this repo | **verified by spec**, and by a real browser: `npm run test:browser:providers` observes five captures from five provider conversations under `autoCapture` with no user interaction (53/53, exit 0), which is 8.13 discharged |
 | **G2** | No silent loss between browser and runtime | this repo | **verified, including end-to-end against the live core** (10.7) |
 | **G3** | Cross-provider retrieval over captured content | this repo (filter) + core (index) | **mechanism and provider filter verified live**; one core gap remains |
-| **G4** | Migrate cognitive state across boundaries | core, plus one new follow-up change | **export/import verified** (4.1, 4.2, and the version refusal 4.3), and the CLI/MCP re-read of a capture verified live (4.4); the browser half of 4.4 and G4.5's manual gate are unrun |
+| **G4** | Migrate cognitive state across boundaries | core, plus one new follow-up change | **export/import verified** (4.1, 4.2, and the version refusal 4.3), and the CLI/MCP re-read of a capture verified live (4.4); the browser half of 4.4 (a fixture-DOM half now runs as a command; a live signed-in page does not) and G4.5's manual gate are unrun |
 | **G5** | Cognitive distillation of conversations | core, via a defined handoff | endpoint pinnable; core-side behaviour still unspecified |
 | **G6** | Every claim provable by a command | this repo | **verified** — five commands, exit 0 each (10.6) |
-| **G7** | The extension cannot be turned into a silent exfiltration channel | this repo | **verified by spec**; the rendered banner gated by the browser-manual gate 8.12 |
+| **G7** | The extension cannot be turned into a silent exfiltration channel | this repo | **verified by spec**, and the banner rendered and the loopback-only `host_permissions` re-read in a real browser (`npm run test:browser`, 37/37, exit 0); 8.12 stays open only for its two browser-chrome gestures |
 | **G8** | Provider DOM drift degrades to a typed error, not a wrong capture | this repo | **verified by spec** across five providers |
 | **G9** | An install that completes, or says exactly what is missing | this repo | **verified by spec**; the host is built and the register-and-load step is a documented command |
 
@@ -276,7 +282,7 @@ surface B, does not produce equivalent retrieval results, migration is not met f
 | G4.1 | Export leg **verified against the live runtime**: `GET /memory/export?actor=` returns every record with `metadata`, `priority`, `record_type` and `tags` intact, and an actor with no records returns an empty valid document rather than an error | executed; output recorded in §*Live verification* |
 | G4.2 | Import is **field-equivalent with a recorded `id` remap** — *not* byte-equivalent. It goes through `POST /memory/add`, one record at a time, because `POST /memory/bulk` was measured losing `tags`, `source` and `priority` while still answering `failed: 0`; `id` and `integrity` are **regenerated** on both paths | `npm test -- tests/migration/round-trip.spec.ts`, `npm test -- tests/router/import.spec.ts`; live leg recorded |
 | G4.3 | A schema-version mismatch is rejected with an actionable error naming the version found and the version understood, never silently coerced, and the refusal writes nothing | `npm test -- tests/migration/version.spec.ts` |
-| G4.4 | A capture is retrievable unmodified from the CLI and from MCP — one capture read back by REST export, `hipcortex backup` and MCP `search_memory` returned the same messages in the same order. The **browser half stays a manual gate**: the capture was produced by the shipped egress code under Node, because no spec can make a real provider tab emit one | machine reads executed 2026-09-14, output in §*Live verification*; loading `dist/` unpacked and capturing from a live provider page remains manual |
+| G4.4 | A capture is retrievable unmodified from the CLI and from MCP — one capture read back by REST export, `hipcortex backup` and MCP `search_memory` returned the same messages in the same order. The **browser half stays a manual gate**: the capture was produced by the shipped egress code under Node, because no spec can make a real provider tab emit one — though `npm run test:browser:providers` | machine reads executed 2026-09-14, output in §*Live verification*; loading `dist/` unpacked and capturing from a fixture provider page now runs as a command; a live signed-in page remains a person's step |
 | G4.5 | *(follow-up, `capture-context-injection`)* context from a captured conversation can be placed in a second provider's composer, and no provider page is mutated while `injectIntoAiChats` is off | `npm test -- tests/capture/injection.spec.ts` |
 
 ---
@@ -685,10 +691,14 @@ Decisions made here without further consultation, each with the condition that w
    are deliberately not restated here, because a count written into prose is a second place it has
    to be maintained and a sentence that quotes a suite of 832 tests is wrong the day the suite
    reaches 947. Run the gates for the numbers; quoted output is in `tasks.md` groups 9 and 10. That
-   is a real advance, and it stops short of the product: the two browser-manual gates
-   (8.12, 8.13) are unrun, Consumer Mode's registered leg is unrun — the host is built, installed
+   is a real advance, and it stops short of the product: 8.13's gate runs as a command
+   (`npm run test:browser:providers`, 53/53) and 8.12's as another (`npm run test:browser`, 37/37),
+   so a probe now does observe a rendered banner, a loaded unpacked build and a real provider's DOM
+   — with two exceptions that stay a person's, because 8.12's context-menu click and its
+   Ctrl+Shift+H keypress are raised by the browser chrome above the renderer, where no automated
+   input reaches. Still unrun: Consumer Mode's registered leg — the host is built, installed
    and answering on this machine, and only Chrome can hand it a port (risk 2) — the POSIX leg of
-   the scripts is unrun (10.13), and no spec can observe a rendered banner or a provider's live DOM.
+   the scripts (10.13), and the live signed-in provider page that G4.4 and G4.5 both want.
    A criterion is still met only when its verification has been run and its output quoted — that rule did not relax
    when the results turned green.
 5. **Semantic search plus a provider filter is not expressible against today's runtime.**
