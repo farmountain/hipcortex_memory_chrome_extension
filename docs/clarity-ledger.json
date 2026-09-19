@@ -12,7 +12,7 @@
     { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24", "Q25", "Q26", "Q27", "Q28", "Q29", "Q30", "Q35"] },
     { "stage": "unknowns", "entries": ["Q4", "Q5", "Q11", "Q20", "Q21"] },
     { "stage": "planning", "entries": ["Q6", "Q9", "Q18"] },
-    { "stage": "react-iterations", "entries": ["Q7", "Q8", "Q10", "Q16", "Q17", "Q31", "Q32", "Q33", "Q34"] }
+    { "stage": "react-iterations", "entries": ["Q7", "Q8", "Q10", "Q16", "Q17", "Q31", "Q32", "Q33", "Q34", "Q36"] }
   ],
   "questions": [
     {
@@ -757,6 +757,36 @@
       ],
       "resolution": "The contract was stale and the tree was right, and the invocation mattered as much as the literal. The count in AC-007 was a snapshot of docs/END-STATE.md taken when it held 67 criteria; four more were added with the capture-on-by-default change set, so the criterion failed a tree that satisfies the requirement it checks. It now asserts the invariant instead - the number the gate cited must equal the number it declared, read back with a backreference - which keeps the assertion, removes the second place the count has to be edited, and cannot go stale. Two further facts were measured rather than assumed: the two node criteria run with the working directory the command is launched from, so the validation is launched from the repository root with the goal and state paths given explicitly, and --defects is a statement about the runs being measured, so it belongs with the negative-control history in .scratch/veridian/negative-state and reports M3 false PASS if it is pointed at the positive one.",
       "doesNotEstablish": "That Veridian ran any browser criterion: browser is disabled in environment.yaml and this run loaded no harness, so the two browser-manual gates remain out of band and quoted rather than executed. It also does not establish that the invariant catches a gate that miscounts in a way it does not print - it compares the two numbers the gate itself writes, no more."
+    },
+    {
+      "id": "Q36",
+      "stage": "react-iterations",
+      "critical": true,
+      "question": "docs/PROTOCOL.md section 3.2, docs/END-STATE.md open risk 6 and docs/RETENTION.md all describe the capture endpoint's refusal as a single PII precondition triggered by a phone number or an email address, yet a memory note was refused twice in a row while two of its neighbours stored. Is the documented trigger incomplete, and if so what is the actual rule?",
+      "state": "self-resolved",
+      "attempts": 4,
+      "artifactsTried": [
+        "docs/PROTOCOL.md section 3.2 - its table names four patterns and its prose says a phone number or an email address, and its second consequence forbids the extension from pre-filtering, redacting or rewriting a capture to get past the precondition, so the finding had to be recorded without weakening that sentence",
+        "docs/END-STATE.md open risk 6 and docs/RETENTION.md - both describe the same single precondition in the same two terms, which is why the defect was in three documents rather than one",
+        "the MCP add tool - it reported a bare refusal with no body at all, which is what made a content refusal look like an authorization failure and is why the first two writes were misread",
+        "curl.exe issued against the same endpoint - it returns the refusal body, and the body names the pattern it matched, which is the one artifact that turned a behaviour table into a stated rule",
+        "a controlled minimal pair through the tool - the same sentence written twice with one token differing, one stored and one refused",
+        "twelve single-token probes through curl.exe, one variable per request, which pinned the contiguous digit threshold at exactly ten digits and showed the dashed form is not phone-shaped",
+        "a bisection of the refused note into halves and then quarters, which located the trigger in one token and cleared its length, its subject and its hex-shaped commit reference",
+        "docs/END-STATE.md - read to confirm that the refused token is one of its own section numbers, which is why an amendment that quotes it cannot be written down as a memory"
+      ],
+      "evidence": [
+        "$ curl.exe -s -X POST /memory/add with an upper-case letter and exactly two digits, delimited on both sides -> 403 {success:false,error:precondition blocked: PHI risk=0.85 patterns:[PHI:E13]}",
+        "$ the same request with that token carrying a decimal extension -> 403 patterns:[PHI:E13.9], reported whole",
+        "$ the same request with the letter lower-case, with one digit, with three digits, and with two letters then two digits -> 200 each, so the PHI match is case-sensitive and delimited rather than a prefix",
+        "$ the same request with a six-six dashed token -> 403 patterns:[PII:123456-1234]; with an eight-six token -> 403 patterns:[PII:345678-1234], so the reporter consumes ten digits including the separators and slides along a longer run to find them",
+        "$ the same request with one digit lower-case and a bare ten-digit run -> 403 patterns:[PII:1234567890], and with nine contiguous digits -> 200, so the contiguous threshold is exactly ten",
+        "$ a body of two thousand one hundred and sixty characters holding no matching token -> 200; the identical body with an eight-six token appended -> 403, which rules out length as the trigger",
+        "$ a successful write -> 200 carrying warning [{action:noted, id:..., overlap_ratio:66, target:...}], so a stored record can still carry a near-duplicate advisory without being rejected or merged",
+        "$ node scripts/traceability.js -> exit 0; $ node scripts/clarity.js -> exit 0"
+      ],
+      "resolution": "The documented trigger was incomplete in three documents at once, and the correction is a second precondition rather than a wider first one. The refusal that started this was PHI, not PII: the runtime applies two preconditions, each names the pattern it matched, and PHI is keyed on a code shape rather than on numbers - an upper-case letter followed by exactly two digits, delimited, is refused, while the lower-case form, the one-digit form, the three-digit form and the two-letter form all store. The PII precondition the document already had is real and separate, at risk 0.90 against the PHI precondition's 0.85, and its published phone example is correct; what the document was missing is that its dashed form is not phone-shaped, since the runtime reports ten digits including the separators for a six-six token and slides to find a ten-digit window inside an eight-six one, while a date, a five-four pair and a nine-one pair are not matched at all. What made this critical rather than cosmetic is the collision: the repository's own end-state document numbers its host-registration section with a token of exactly the PHI shape, so a note quoting it cannot be stored as a memory, and the same class of token - a two-digit code or reference - is ordinary conversational text where a phone number is not. Three things were therefore changed and one was deliberately not. docs/PROTOCOL.md section 3.2 now records both preconditions, keeps the runtime's own printed pattern literals as the evidence rather than asserting a regular expression, and states that the refusal is not length-shaped and that a stored record may carry a near-duplicate warning. docs/END-STATE.md open risk 6 and its live-verification row now name both preconditions. The rule that the extension must never pre-filter, redact or rewrite a capture to get past either precondition is unchanged and unweakened, and no file under src/ was touched: the question was what the contract says, and the answer is more of it rather than different behaviour.",
+      "doesNotEstablish": "That these are the only preconditions. Two were observed and one of them was undocumented until this entry, so a third that no probe here reached may exist, and the reading is by construction limited to what was probed. The PHI rule is stated as the five payloads that were tested and not as an expression, and which fields are scanned was not established either - PII was previously verified against actor and target, and every PHI probe varied target alone, so a producer that puts the same token in an id or an action has not been measured. It does not establish the relative likelihood of either refusal on real captured text, only the shape of the token each one matches. And it does not begin to specify what the extension should do about a refusal: classification, counting apart from a transient failure and reporting the runtime's own error string verbatim remain cortexbridge-retention-boundary task 5.2's, and this change amended documentation only."
     }
   ]
 }

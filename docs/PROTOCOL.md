@@ -102,17 +102,94 @@ evidence of anything.
 
 ### 3.2 Known refusals of the capture endpoint
 
-`POST /memory/add` is not unconditional. The runtime applies a PII precondition before it writes and
-refuses the **whole record** when any field matches a PII pattern. Verified 2026-09-14 against
-3.11.0, one probe per row:
+`POST /memory/add` is not unconditional. The runtime applies **two** preconditions before it writes
+and refuses the **whole record** when any field matches one, and each refusal names the pattern it
+matched. The PII one was verified 2026-09-14 against 3.11.0, one probe per row; the PHI one was
+found on 2026-09-19 and is recorded here for the first time:
 
 | Field carrying the pattern | Response |
 |----------------------------|----------|
 | `actor` with a 10-digit run | `403 {"success":false,"error":"precondition blocked: PII risk=0.90 patterns=[\"PII:1789355714\"]"}` |
-| `target` with a dashed phone number | `403 ... patterns=["PII:415-555-0134"]` |
+| `target` with a dashed number-like token | `403 ... patterns=["PII:415-555-0134"]` |
 | `target` with a bare 10-digit run | `403 ... patterns=["PII:4155550134"]` |
 | `target` with an email address | `403 ... patterns=["PII:someone@example.com"]` |
 | a transcript matching no pattern | `200 {"success":true,"record_id":"3460cc8d-5d35-4faf-9b33-ca27852e4765"}` |
+
+**The dashed row is not phone-shaped, and there is a second precondition that is not about numbers at
+all.** Re-probed 2026-09-19 against the same runtime, one token varied per probe with every other
+byte of the request held constant. Read with `curl.exe`, which returns the refusal body; the MCP
+client surfaced the same refusals as a bare `403` with no body at all:
+
+| `target` holding | Digits | Response |
+|------------------|--------|----------|
+| `123456` | 6 contiguous | `200` — stored |
+| `1234567` | 7 contiguous | `200` — stored |
+| `12345678` | 8 contiguous | `200` — stored |
+| `123456789` | 9 contiguous | `200` — stored |
+| `1234567890` | 10 contiguous | `403` — `PII:1234567890` |
+| `12345678901` | 11 contiguous | `403` |
+| `+1234567890` | 11 with a leading `+` | `403` |
+| `415-555-0134` | 3-3-4 | `403` — `PII:415-555-0134` |
+| `123456-123456` | 6-6 | `403` — `PII:123456-1234` |
+| `12345678-123456` | 8-6 | `403` — `PII:345678-1234` |
+| `2026-09-19` | 4-2-2 | `200` — stored |
+| `12345-6789` | 5-4 | `200` — stored |
+| `123456789-0` | 9-1 | `200` — stored |
+| `1-2-3-4-5-6-7-8-9-0` | ten groups of one | `200` — stored |
+
+The pattern literals in that last column are the ones the runtime printed, and they carry the rule
+better than a guessed expression would. The contiguous threshold is exactly ten digits — nine
+stores, ten does not. And the dashed form is wider than a phone number: the runtime reports
+`PII:123456-1234` for a 6-6 token and `PII:345678-1234` for an 8-6 token, so it consumes ten digits
+*including* the separators between them and slides along a longer run to find them, while a 4-2-2
+date, a 5-4 pair and a 9-1 pair are not matched at all. A fixture built to a phone number is
+narrower than the predicate.
+
+**The second precondition is PHI, it is keyed on a code shape, and it is case-sensitive:**
+
+| `target` holding | Response |
+|------------------|----------|
+| an upper-case letter and exactly two digits, delimited on both sides | `403 {"success":false,"error":"precondition blocked: PHI risk=0.85 patterns=[\"PHI:E13\"]"}` |
+| the same token with a decimal extension | `403 ... patterns=["PHI:E13.9"]` |
+| the same with the letter lower-case | `200` — stored |
+| an upper-case letter and one digit | `200` — stored |
+| an upper-case letter and three digits | `200` — stored |
+| two letters then two digits | `200` — stored |
+
+Read those literals as the evidence. The runtime refused an upper-case letter followed by exactly two
+digits when the token stood alone between non-word characters, refused the same token with a `.9`
+suffix and reported it whole, and stored the lower-case form, the one-digit form, the three-digit
+form and the two-letter form. The three-digit case is the sharpest: a letter plus two digits is
+refused and the same prefix followed by a third digit is stored, so the match is delimited rather
+than a prefix. No regular expression is asserted here — the payloads are.
+
+Two consequences of the PHI predicate matter more than the PII one, because a two-digit code is
+ordinary conversational text where a phone number is not:
+
+- **This repository cannot store a memory that quotes its own section numbers.** `docs/END-STATE.md`
+  has a section `E13`, for the host registration work, and a record naming it is refused. Measured
+  rather than inferred: the same note written twice was refused twice, and the third attempt with
+  that single reference removed stored on the first try.
+- **The predicate is code-shaped, not semantic.** `COVID-19` stores, so it fires on codes and misses
+  disease names — the opposite of what a reader would guess, and the reason a health-adjacent
+  conversation can be refused for a token that carries no health information at all.
+
+**The refusal is not length-shaped.** A body of two thousand one hundred and sixty characters
+holding no matching token stored, and the identical body with an 8-6 token appended was refused
+`PII`.
+
+**A stored record can still carry a warning.** A successful write returned
+`"warning":[{"action":"noted","id":"…","overlap_ratio":66,"target":"…"}]` — a near-duplicate
+advisory naming the record it overlaps and a percentage. It does not reject the write and it does not
+merge: the record was stored and the earlier one was untouched. That refines, and does not
+contradict, the closed risk in `docs/END-STATE.md` that the runtime does not merge duplicates.
+
+**It reaches this repository's own identifiers.** A run id has the shape
+`run-YYYYMMDD-HHMMSS-xxxxxx`, and `YYYYMMDD-HHMMSS` is the 8-6 form refused above, so no record
+quoting one can be stored. Measured: `POST /memory/add` answered `200` for a probe whose text held
+no such token and `403` for the same text carrying one, with actor, action and record type
+unchanged. Every probe actor was deleted afterwards, the last reporting `records_deleted: 2` against
+exactly two records present.
 
 Two consequences, neither of which is a reason to change what the extension sends:
 

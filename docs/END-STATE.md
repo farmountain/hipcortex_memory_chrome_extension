@@ -627,7 +627,7 @@ provider tab — which is why G4.4's browser half is still recorded as a manual 
 | `GET /memory/search-flat` | `{"memories":["[action] target", …]}` — plain strings, **no metadata** |
 | `GET /memory/query?actor=…` after 10 captures through the shipped pipeline | `{"records":[…],"total":10}` |
 | `POST /memory/add` with a clean transcript | 200 `{"success":true,"record_id":"3460cc8d-…"}` — acknowledged |
-| Same endpoint, transcript containing a 10-digit run, a dashed phone number or an email | **403** `{"success":false,"error":"precondition blocked: PII risk=0.90 patterns=[…]"}` — deterministic, so a retry never succeeds |
+| Same endpoint, transcript the runtime reads as PII or as PHI | **403** `{"success":false,"error":"precondition blocked: PII risk=0.90 patterns=[…]"}` or `… "PHI risk=0.85 patterns=[…]"` — deterministic, so a retry never succeeds. Ten contiguous digits or a dashed ten-digit token trips PII; an upper-case letter with exactly two digits trips PHI. The measured shapes and the runtime's own pattern literals are tabulated in `docs/PROTOCOL.md` §3.2 |
 | `POST /memory/ingest` re-probe | 200 while fabricating `action:"noted"`, `record_type:"Temporal"`, `ttl_seconds:86400`, `working_memory:true`; `text` is its only required field, and a body with no `context` and no `session_id` is accepted |
 | `DELETE /memory/forget/{actor}` | `{"success":true,"records_deleted":12,…}` — the throwaway actor was left with 0 records |
 
@@ -695,11 +695,18 @@ Decisions made here without further consultation, each with the condition that w
    `POST /memory/search` has no filter field. Tracked cross-repo as
    `core: add filter to POST /memory/search`. The UI must not imply this combination works.
 6. **The runtime can refuse a capture permanently, and today that is indistinguishable from a
-   transient failure.** `POST /memory/add` runs a PII precondition that answers `403` when the
-   transcript contains a phone number or an email address, so a refused capture is retained and
-   retried forever while the queue reports it through the same `reasons` list as a network failure.
-   Nothing is lost — that part of G2 holds — but the user cannot tell "wait" from "this will never
-   work". Owned by `cortexbridge-retention-boundary`, not by this change. Deliberately **not**
+   transient failure.** `POST /memory/add` runs two preconditions that each answer `403` — **PII**
+   (`risk=0.90`) and **PHI** (`risk=0.85`) — and a capture the runtime reads as either is refused
+   whole. Both are wider than they sound. PII fires on ten contiguous digits, or on a dashed
+   ten-digit token that is not phone-shaped at all. PHI fires on an upper-case letter followed by
+   exactly two digits, which is the shape of an ICD-10 code and also of an ordinary two-digit
+   reference — including, concretely, this repository's own `E13` section number, so an amendment
+   that quotes it cannot be stored as a memory at all. `docs/PROTOCOL.md` §3.2 tabulates the
+   measured shapes and quotes the runtime's own pattern literals. So a
+   refused capture is retained and retried forever while the queue reports it through the same
+   `reasons` list as a network failure. Nothing is lost — that part of G2 holds — but the user
+   cannot tell "wait" from "this will never work". Owned by `cortexbridge-retention-boundary`, not
+   by this change. Deliberately **not**
    mitigated by filtering, redacting or rewriting the user's text to get past the precondition: the
    extension's job is to deliver what was said and to say plainly when it could not.
 
