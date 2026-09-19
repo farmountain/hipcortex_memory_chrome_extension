@@ -10,7 +10,7 @@
     { "stage": "goals", "entries": ["Q1", "Q14"] },
     { "stage": "acceptance-criteria", "entries": ["Q2", "Q15", "Q19"] },
     { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24", "Q25", "Q26", "Q27", "Q28", "Q29", "Q30", "Q35", "Q37", "Q38", "Q40", "Q41", "Q42", "Q44"] },
-    { "stage": "unknowns", "entries": ["Q4", "Q5", "Q11", "Q20", "Q21"] },
+    { "stage": "unknowns", "entries": ["Q4", "Q5", "Q11", "Q20", "Q21", "Q45", "Q46"] },
     { "stage": "planning", "entries": ["Q6", "Q9", "Q18", "Q43"] },
     { "stage": "react-iterations", "entries": ["Q7", "Q8", "Q10", "Q16", "Q17", "Q31", "Q32", "Q33", "Q34", "Q36", "Q39"] }
   ],
@@ -967,6 +967,51 @@
       ],
       "resolution": "The obstacle is one configuration option rather than a missing capability, and the option stays unset. Setting it is what would let an agent load dist/, reload it and trigger the action, which is the gesture Q42 records as never performed, so 8.12 stays unticked and the option is reported to the person who owns the machine rather than switched on. The recommendation attached to it is the reason: it pairs the extension tools with attaching the agent to a real signed-in browser profile, and handing an agent the user's logged-in browser is a consent decision belonging to that user, not a default a checked-out repository applies. It is the same boundary this repository already applies to capture egress and to the running core.",
       "doesNotEstablish": "That setting the option would in fact reach the gestures. The claim that extension tools can trigger an extension action is the vendor's, not something probed here, and the option was left off so that it could not be probed, which means this entry must not be cited later as evidence that the route works."
+    },
+    {
+      "id": "Q45",
+      "stage": "unknowns",
+      "critical": false,
+      "question": "The release mandate asks for every channel to be aligned. README.md asserted that the core's published channels were aligned and that its manifests agree with each other. Is that assumption true?",
+      "state": "self-resolved",
+      "attempts": 3,
+      "artifactsTried": [
+        "README.md - it named three manifests as agreeing at 3.13.0 and stated that the published channels were not part of the version gap, which reads as a measurement but was itself an assumption about surfaces it had never enumerated",
+        "the core repository's declaring files, enumerated rather than recalled - Cargo.toml, sdk/python/pyproject.toml and the VS Code extension package.json each declare 3.13.0, and sdk/typescript/package.json declares 3.12.0, so the set that agrees is three of four and not all of them",
+        "the two registries those manifests publish to - PyPI answers 3.13.0 and npm answers 0.5.2, so the channels do not agree with each other either",
+        "the core's Publish npm package workflow runs - every run it has made has failed, forty of them, back to 2026-05-20, which is as far back as the API returns"
+      ],
+      "evidence": [
+        "$ npm view hipcortex version dist-tags --json -> 0.5.2, latest 0.5.2",
+        "$ npm view hipcortex repository time.modified -> directory sdk/typescript, modified 2026-07-20T14:42:22.673Z",
+        "$ node -e require sdk/typescript/package.json -> version 3.12.0, publishConfig registry registry.npmjs.org, not private",
+        "$ GET https://pypi.org/pypi/hipcortex/json -> info.version 3.13.0",
+        "$ gh run list --workflow publish-npm.yml --limit 40 -> forty runs, forty failures, the oldest dated 2026-05-20",
+        "$ gh run view 34992341241 --log-failed -> the tarball builds and then npm error code ENEEDAUTH, because the registry token it publishes with is not present",
+        "$ Get-ChildItem -Recurse -Filter Cargo.toml|pyproject.toml|package.json -> exactly four declaring surfaces in the core, three at 3.13.0 and one at 3.12.0"
+      ],
+      "resolution": "The assumption was false in two ways and both are now stated in README.md. Three of the core's four declaring surfaces agree at 3.13.0 rather than all of them, and the npm channel sits two months and a whole version line behind every other surface the core publishes. The mechanism is a missing credential rather than a wrong label, which is why this is not a revival of the withdrawn mislabelling reading: that conclusion stays withdrawn, and the README says so in the same paragraph that states the new fact, so the two cannot be confused. Repairing the workflow needs the core repository's registry secret, which is not reachable from this repository.",
+      "doesNotEstablish": "That a channel answering the right version serves the right artifact. The probes read version strings out of two registries and the workflow's own log; none of them downloaded a published tarball or wheel and compared it against the source tree, so this entry establishes the labels and the mechanism and not the payloads. It also does not establish that all forty failures share the one cause, because only the newest was read to the end."
+    },
+    {
+      "id": "Q46",
+      "stage": "unknowns",
+      "critical": false,
+      "question": "The release mandate instructs that every channel be brought up to date. The npm channel cannot be, from here. Is that a task in this repository, and what closes it?",
+      "state": "open-with-exit",
+      "attempts": 2,
+      "artifactsTried": [
+        "AGENTS.md - it states that this repository is the perception layer, that the core lives in a separate repository which must never be imported, vendored or reached into, and that this repository never builds or ships the core",
+        "the core repository's working tree - sdk/typescript/package.json and the publish workflow are readable and the defect is fully characterised, but that repository is a read-only input for this work, so the fix is not editable from here",
+        "the failing workflow's log - the remedy it needs is a repository secret, which is a credentialed write to a third-party service and not something a checkout can perform on its own authority"
+      ],
+      "evidence": [
+        "$ npm view hipcortex version -> 0.5.2 while its source declares 3.12.0 and the core's other surfaces declare 3.13.0",
+        "$ gh run view 34992341241 --log-failed -> npm error code ENEEDAUTH, with the tarball itself built successfully",
+        "$ git diff --stat v0.2.2..HEAD -- public/ src/ scripts/ -> empty, so nothing in this repository's shipped output is involved"
+      ],
+      "exitCondition": "The core repository's maintainer supplies the registry token the publish workflow reads, or publishes sdk/typescript by hand, after which npm serves a version matching sdk/typescript/package.json. That is a credentialed write to a third-party registry in another repository, so it is a person's step and this repository only records it; the fact is also carried in README.md so that a reader does not have to find this ledger to meet it.",
+      "doesNotEstablish": "That the absent token is the only thing wrong. The tarball builds, the version it carries is the one the source declares, and the failure is authentication - but a workflow run stops at the first failing step, so nothing downstream of the publish has been exercised, and a repaired token could still meet a rejected publish for a reason no run has reached yet."
     }
   ]
 }
