@@ -9,9 +9,9 @@
   "stages": [
     { "stage": "goals", "entries": ["Q1", "Q14"] },
     { "stage": "acceptance-criteria", "entries": ["Q2", "Q15", "Q19"] },
-    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24", "Q25", "Q26", "Q27", "Q28", "Q29", "Q30", "Q35", "Q37", "Q38", "Q40", "Q41", "Q42"] },
+    { "stage": "validation-planning", "entries": ["Q3", "Q12", "Q13", "Q22", "Q23", "Q24", "Q25", "Q26", "Q27", "Q28", "Q29", "Q30", "Q35", "Q37", "Q38", "Q40", "Q41", "Q42", "Q44"] },
     { "stage": "unknowns", "entries": ["Q4", "Q5", "Q11", "Q20", "Q21"] },
-    { "stage": "planning", "entries": ["Q6", "Q9", "Q18"] },
+    { "stage": "planning", "entries": ["Q6", "Q9", "Q18", "Q43"] },
     { "stage": "react-iterations", "entries": ["Q7", "Q8", "Q10", "Q16", "Q17", "Q31", "Q32", "Q33", "Q34", "Q36", "Q39"] }
   ],
   "questions": [
@@ -912,6 +912,47 @@
       ],
       "exitCondition": "A person with dist/ loaded through chrome://extensions performs the two gestures once - a right-click on a selection, then the HipCortex menu and Add selection, then Ctrl+Shift+H - records the capture that reaches the core and the side panel that opens, and writes both results into section 8 of openspec/changes/cortexbridge-perception-layer/tasks.md, which is the section that can then tick 8.12 and supersede this question.",
       "doesNotEstablish": "Nothing here is claimed as established. The handlers behind both gestures are covered by spec and the gestures themselves have been performed by no one, which is the entire content of this entry."
+    },
+    {
+      "id": "Q43",
+      "stage": "planning",
+      "critical": false,
+      "question": "Chrome's coding-agent guidance asks an agent to create and maintain a store instructions file at the repository root. Does this repository need a second copy of the submission package there, or a pointer?",
+      "state": "self-resolved",
+      "attempts": 2,
+      "artifactsTried": [
+        "docs/STORE.md - read the 19 heading map and all 11 paste-ready boxes; every listing value is either asserted against public/manifest.json by tests/quality/store.spec.ts or maintained by hand and honesty-checked after each package",
+        "docs/REQUIREMENTS.md - the index already states which document owns the submission package, and says of itself that it is deliberately not a second specification",
+        "AGENTS.md - the 0.2.2 record: one fact written in several places, each copy agreeing with its neighbours and with nothing else, which no test caught because no assertion pinned it"
+      ],
+      "evidence": [
+        "$ npx vitest run tests/quality -> 222 passed, exit 0",
+        "$ node scripts/traceability.js -> OK, exit 0; the gate resolves docs/STORE.md and reads no root copy",
+        "tests/quality/store.spec.ts - two added describe blocks fail when the root file restates the short description, the version or the archive name, or when it holds a fenced block"
+      ],
+      "resolution": "A pointer. The convention is satisfied by the information being tracked in the repository, and it is tracked in more detail than the convention asks for; the gate reads docs/STORE.md, so a root copy would be a second thing to drift, and to drift silently. The root file names the document that owns the package and carries no version, size, hash, character count, archive name or paste-ready box, and the spec now fails if it stops being a pointer. Both guards were falsified before being trusted: restating values in the root file produced the expected two failures, dropping its reference to the owning document produced the third, and it was then restored byte-identically. The index in docs/REQUIREMENTS.md gained a row for the root file, because that table answers which document owns what and the honest answer for this one is nothing.",
+      "doesNotEstablish": "That an agent told to publish will follow the pointer. It establishes that the pointer cannot mislead by carrying a stale value; it does not establish that a tool which looks for that filename reads past its first paragraph, and nothing here was probed by such a tool because this repository drives no agent tooling."
+    },
+    {
+      "id": "Q44",
+      "stage": "validation-planning",
+      "critical": false,
+      "question": "Q42 needs a person because no automated input reaches the browser chrome above the renderer. The tooling offered to coding agents since then includes extension control - does that now make the gestures performable by an agent, and should this repository take it?",
+      "state": "self-resolved",
+      "attempts": 2,
+      "artifactsTried": [
+        "the MCP server registry configured for this editor - the Chrome DevTools server is present, and the option that exposes its extension tools is not among the arguments it is started with",
+        "the tool list this session exposes - click, drag, emulate, lighthouse audit, performance trace, navigate, snapshot, console and network reads; no extension install, list, reload or action tool, which is the observable consequence of the missing option",
+        "tests/options/settings.spec.ts - 14 cases cover the request each context-menu branch produces and the side panel call behind the shortcut, so the handlers are covered and the gestures are not",
+        "the official guidance page for coding agents on extensions - it states that the extension tools require that option, and recommends pairing it with attaching the agent to the default signed-in browser profile"
+      ],
+      "evidence": [
+        "$ npx vitest run tests/options/settings.spec.ts -> 14 passed, exit 0",
+        "this session's available tools -> extension tools absent, page and performance tools present",
+        "$ node scripts/clarity.js -> exit 0"
+      ],
+      "resolution": "The obstacle is one configuration option rather than a missing capability, and the option stays unset. Setting it is what would let an agent load dist/, reload it and trigger the action, which is the gesture Q42 records as never performed, so 8.12 stays unticked and the option is reported to the person who owns the machine rather than switched on. The recommendation attached to it is the reason: it pairs the extension tools with attaching the agent to a real signed-in browser profile, and handing an agent the user's logged-in browser is a consent decision belonging to that user, not a default a checked-out repository applies. It is the same boundary this repository already applies to capture egress and to the running core.",
+      "doesNotEstablish": "That setting the option would in fact reach the gestures. The claim that extension tools can trigger an extension action is the vendor's, not something probed here, and the option was left off so that it could not be probed, which means this entry must not be cited later as evidence that the route works."
     }
   ]
 }

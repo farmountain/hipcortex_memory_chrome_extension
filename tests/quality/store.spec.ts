@@ -446,3 +446,59 @@ describe("the documents agree with the shipped capture defaults", () => {
   });
 });
 
+/**
+ * Chrome's agent guidance asks an agent working on an extension to create and maintain a
+ * `CHROMEWEBSTORE.md` at the repository root, so that the facts a submission needs live where a tool
+ * will look for them. This repository already tracks them in `docs/STORE.md`, and tracks them better
+ * than the convention asks: eleven sections, paste-ready boxes held to the limits the dashboard's own
+ * form enforces, and every sentence naming a manifest fact checked here against the manifest.
+ *
+ * The convention is satisfied by a pointer, and these cases keep the pointer a pointer. A root copy
+ * of a listing value would be a second statement of one fact, and the drift would be silent: the gate
+ * reads `docs/STORE.md`, so a stale copy at the root would fail nothing. That is the shape of defect
+ * four documents had to be corrected for in `0.2.2`, where several statements of one fact agreed with
+ * each other and with nothing else.
+ */
+describe("the root store pointer stays a pointer", () => {
+  const POINTER = path.join(REPO_ROOT, "CHROMEWEBSTORE.md");
+
+  it("exists at the root, where Chrome's convention looks for it", () => {
+    expect(existsSync(POINTER), "CHROMEWEBSTORE.md is absent from the repository root").toBe(true);
+  });
+
+  // Read the file rather than re-check existence, so the content cases below fail loudly when the
+  // file is gone instead of passing over an empty string. A case that cannot fail is not a case.
+  const pointer = existsSync(POINTER)
+    ? readFileSync(POINTER, "utf8").replace(/\r\n/g, "\n")
+    : "";
+
+  it("names the document that owns the submission package", () => {
+    expect(pointer).toContain("docs/STORE.md");
+  });
+
+  it("restates no value the document owns", () => {
+    const description = manifest.description ?? "";
+    const version = manifest.version ?? "";
+    expect(description.length).toBeGreaterThan(0);
+    expect(version.length).toBeGreaterThan(0);
+    expect(pointer, "the pointer must not restate the short description").not.toContain(description);
+    expect(pointer, "the pointer must not restate the version").not.toContain(version);
+    expect(pointer, "the pointer must not restate the archive name").not.toContain(
+      "hipcortex-chrome-extension-"
+    );
+  });
+
+  it("holds no paste-ready box, so no listing copy can be copied from the wrong file", () => {
+    expect(pointer).not.toContain("```");
+  });
+});
+
+describe("the repository tells a future agent where the store copy is", () => {
+  const agents = readFileSync(path.join(REPO_ROOT, "AGENTS.md"), "utf8").replace(/\r\n/g, "\n");
+
+  it("names the root pointer and the document it points at", () => {
+    expect(agents).toContain("CHROMEWEBSTORE.md");
+    expect(agents).toContain("docs/STORE.md");
+  });
+});
+

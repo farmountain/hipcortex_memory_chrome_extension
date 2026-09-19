@@ -121,6 +121,13 @@ Load the extension: `npm run build` → `chrome://extensions` → Developer mode
   Windows PowerShell 5.1 emits `\`-separated entry names, which the ZIP specification forbids and
   which shipped in the `v0.1.0` release asset, so the writer is in-repo and `tests/quality/zip.spec.ts`
   pins the `/` separator, the root `manifest.json` and the recoverable contents.
+- **The submission package is `docs/STORE.md`.** Chrome's agent guidance asks for a
+  `CHROMEWEBSTORE.md` at the repository root; here that file is a pointer to `docs/STORE.md` and
+  nothing else. The convention is satisfied by the information being tracked in the repository,
+  which it already is and in more detail than the convention asks for. The pointer holds no version,
+  size, hash, character count or paste-ready box, because a second copy of a manifest fact is a
+  second thing to drift and the gate reads only `docs/STORE.md`. Edit the real document, then run
+  `npx vitest run tests/quality`; `tests/quality/store.spec.ts` fails if the pointer stops being one.
 - **`dist/` is not tracked** (see `.gitignore`, decision D8). A stale `dist/` used to be able to mask
   a broken build, so `git ls-files dist` returns nothing; run `npm run build` before claiming any
   change works.
@@ -154,6 +161,18 @@ Load the extension: `npm run build` → `chrome://extensions` → Developer mode
   (artifacts before people), the four question states, the exit conditions, and the six lifecycle
   stages that must each record an entry. `docs/clarity-ledger.json` is the ledger;
   `npm run test:clarity` is the gate; `openspec/changes/clarity-protocol/` holds its criteria.
+- `CHROMEWEBSTORE.md` — the root pointer that Chrome's agent guidance looks for. Names
+  `docs/STORE.md` as the owner of the submission package and deliberately carries no copy of it.
+- Chrome's guidance for coding agents on extensions ("Build extensions with coding agents") has
+  three parts. The `CHROMEWEBSTORE.md` convention is the one that touches this repository, and it is
+  satisfied by the pointer above. The other two are environment setup, not repository content: the
+  Modern Web Guidance skills pack (`npx modern-web-guidance@latest install --choose`, an interactive
+  wizard the user runs) and the Chrome DevTools MCP server, which exposes extension tools only when
+  the `--categoryExtensions` option is set. Enabling that option is what would let an agent load the
+  unpacked build and exercise the gesture the browser harnesses cannot reach — see the "Known
+  limitations" section of `README.md` — but the option also carries a `--autoConnect` recommendation
+  that attaches an agent to a real signed-in Chrome profile, so it is the user's decision and not
+  something a repository should turn on.
 - `docs/ARCHITECTURE.md` — the capture → normalize → forward → queue flow, the layer table with its
   hard rules, and the explicit non-goals. Read it before adding a layer.
 - `docs/RETENTION.md` — what "retention" means for the queue (a pause with a count, never an

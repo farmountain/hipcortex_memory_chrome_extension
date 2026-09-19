@@ -47,6 +47,7 @@ disk, fails `npm run test:traceability` (`G6.8`).
 |----------|------|
 | [`docs/STORE.md`](./STORE.md) | The Chrome Web Store submission: the archive to upload, the paste-ready listing copy, the per-permission and host-permission justifications, the remote-code answer, the nine data-disclosure declarations and the privacy-policy URL the Privacy tab is filled from, the reviewer instructions, the post-upload step that reconciles the local extension ID with the ID the store assigns, and an explicit list of what is still missing |
 | [`docs/PRIVACY.md`](./PRIVACY.md) | The privacy policy the store requires once personal communications are declared. It is a user-facing surface, so its claims are checked like any other assertion |
+| [`CHROMEWEBSTORE.md`](../CHROMEWEBSTORE.md) | Nothing, deliberately. It sits at the repository root because Chrome's agent guidance looks for that filename there, and it is a pointer to `docs/STORE.md` rather than a second copy of it — no version, no size, no hash, no character count, no paste-ready box — so no listing copy can be pasted from the wrong file. `tests/quality/store.spec.ts` fails if it stops being a pointer |
 
 Uploading is a manual step in the Developer Dashboard. Nothing in this repository uploads anything,
 and `docs/STORE.md` opens by saying so.
