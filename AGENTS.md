@@ -67,7 +67,7 @@ fails with a module-not-found error on a fresh clone.
 | `npm install` | works | Required before any other command |
 | `npm run build` | works | `tsc` → `dist/`, then `scripts/build-content.js` bundles the one content-script entry, then `scripts/copy-assets.js` copies `public/*` including `public/icons/` |
 | `npm run watch` | partial | `tsc --watch` only — assets are **not** re-copied |
-| `npm test` | works | `vitest run` across two projects (`node`, `jsdom`); 54 spec files / 832 tests, all passing on 2026-09-14. `passWithNoTests: false`, so a missing spec file fails the gate |
+| `npm test` | works | `vitest run` across two projects (`node`, `jsdom`), green on 2026-09-20. `passWithNoTests: false`, so a missing spec file fails the gate. The counts belong to the gate and are printed by it — run it for the numbers rather than reading one here, because a count in prose is stale the day the suite grows |
 | `npm run lint` | works | Flat `eslint.config.js`, script is `eslint src tests`. `scripts/`, `docs/` and `public/` are outside the lint gate |
 | `npm run typecheck` | works | `tsc --noEmit`, then `tsc -p tsconfig.test.json` so the `tests/**` tree is type-checked too |
 | `npm run verify` | works | `typecheck && lint && test && build` — exactly these four, pinned by `tests/quality/gates.spec.ts`. Adding a fifth command fails that test |

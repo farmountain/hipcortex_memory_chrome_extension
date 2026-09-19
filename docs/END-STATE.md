@@ -56,7 +56,7 @@ Consequences that decide several goals below, and that are not negotiable within
 
 | Goal | Statement | Owner | Status |
 |------|-----------|-------|--------|
-| **G1** | Capture conversations from all five providers | this repo | **verified by spec**, and by a real browser: `npm run test:browser:providers` observes five captures from five provider conversations under `autoCapture` with no user interaction (53/53, exit 0), which is 8.13 discharged |
+| **G1** | Capture conversations from all five providers | this repo | **verified by spec**, and by a real browser: `npm run test:browser:providers` observes five captures from five provider conversations under `autoCapture` with no user interaction, exit 0, which is 8.13 discharged |
 | **G2** | No silent loss between browser and runtime | this repo | **verified, including end-to-end against the live core** (10.7) |
 | **G3** | Cross-provider retrieval over captured content | this repo (filter) + core (index) | **mechanism and provider filter verified live**; one core gap remains |
 | **G4** | Migrate cognitive state across boundaries | core, plus one new follow-up change | **export/import verified** (4.1, 4.2, and the version refusal 4.3), and the CLI/MCP re-read of a capture verified live (4.4); the browser half of 4.4 (a fixture-DOM half now runs as a command; a live signed-in page does not) and G4.5's manual gate are unrun |
