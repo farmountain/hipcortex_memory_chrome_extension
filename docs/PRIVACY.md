@@ -68,9 +68,20 @@ configuration. The extension contains no code fetched at runtime.
 
 ## Storage and deletion
 
-Captured conversations that have not yet been delivered sit in the extension's own local storage
-until the runtime acknowledges them, together with a local search index. Conversation content is
-never written to browser-synced storage, so it is never copied to another machine by the browser.
+Captured conversations sit in the extension's own local storage, and there are two kinds of copy.
+
+The first is the **delivery queue**. It holds conversations the runtime has not yet acknowledged. It is
+never trimmed to make room: an entry leaves it only when the runtime acknowledges it, and a queue that
+fills up pauses capture and says so, rather than quietly dropping one.
+
+The second is a **local search index**, and it is built from conversations that have already been
+delivered — one bounded copy per acknowledgement, with the conversation's text truncated and the
+oldest copy evicted once the bound is reached. It exists so that search can still be answered while
+your runtime is stopped. A conversation can therefore be in your runtime and in this index at the same
+time.
+
+Conversation content is never written to browser-synced storage, so the browser never copies it to
+another machine.
 
 Settings are stored separately, and those are synced: the runtime address, transport mode and limits
 you configure follow you to another browser you are signed in to. If you enter an API key it is part
@@ -78,10 +89,12 @@ of those settings and is stored there as well. The extension sends that key nowh
 runtime address you set.
 
 - To remove everything the extension stores, **uninstall the extension**. Nothing is retained.
-- The local search index can be cleared from the popup without uninstalling.
+- The local search index can be cleared from the popup without uninstalling, and the popup reports how
+  many conversations it holds and which providers they came from.
 - Undelivered captures can be exported to a file, or left to be discarded with the extension.
-- Data already delivered to your HipCortex runtime is governed by that runtime, on your machine. The
-  extension keeps no copy of acknowledged captures.
+- Conversations you have delivered are also in your HipCortex runtime, where they are governed by that
+  runtime, on your machine. The extension's remaining copy is the search-index record described above,
+  and clearing the index removes it.
 
 ## Third parties
 

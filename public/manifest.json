@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "HipCortex Memory",
   "short_name": "HipCortex",
-  "version": "0.2.1",
-  "description": "Stop losing your AI conversations. Capture ChatGPT, Claude, Grok, Gemini and DeepSeek into a memory you own, on your own machine.",
+  "version": "0.2.2",
+  "description": "Stop losing your AI conversations. Keep ChatGPT, Claude, Grok, Gemini and DeepSeek chats in a private memory on your own machine.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApyQbZtyawt6sVtpS0ybo845W+U4xwVbrxhTEjL7AYFwo/My3FNCaDy541xLJJrNe1xAscrchV7+crzcuTJqHLqqbqyifamYCL6tQIqJ8WwbMltoQOzDpk7J+7I+1YaUhJLQH+cvY+CTbVQAA5E/dzEvyuEY/RN16XVaCCCldZgDDXSWtRfQ3eF4YIyAI3n39n6wOKiSxZE1456VmwibUpVez1vMhGerLlf6CzYlJTjbdH8ur6RSW0zFLp1E3epUICGPREyppnJAHmNs8qXTcLVHpAHKKCqhLhUV1Dcrgse7MqCQWgkju+0REnSOaAYP8nZlBrfUzFOQWyZU0thRRNwIDAQAB",
   "icons": {
     "16": "icons/icon16.png",

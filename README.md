@@ -27,10 +27,10 @@ It is built so that every claim about it is provable by a command: see [Developm
 
 | Component | Version | Declared in |
 |-----------|---------|-------------|
-| This extension | `0.2.1` | `package.json`, `public/manifest.json` |
+| This extension | `0.2.2` | `package.json`, `public/manifest.json` |
 | HipCortex core it was measured against | `3.11.0` | every observation in [docs/PROTOCOL.md](./docs/PROTOCOL.md) |
 
-Re-measured 2026-09-17 rather than carried forward. The runtime answers its own version, and that
+Re-measured 2026-09-19 rather than carried forward. The runtime answers its own version, and that
 reply is what the second row names:
 
 ```
@@ -55,22 +55,38 @@ been measured by anything in this repository, and the version row above keeps sa
 that reason. This repository is the perception layer and never builds or ships the core, so that is
 an observation about the machine, not a task in this tree.
 
+The published channels are not part of that gap. Measured on 2026-09-19, the core's manifests agree
+with each other and with its latest release: the core `Cargo.toml`, `sdk/python/pyproject.toml` and
+the VS Code extension's `package.json` all declare `3.13.0`, and the `v3.13.0` release carries a
+wheel, four platform binaries and a `.vsix` under that same number. An earlier reading of the same
+manifest concluded that a published channel was mislabelled; it was not, and that conclusion has been
+withdrawn. What is stale is this machine's install. The only VS Code extension present is
+`farmountain.hipcortex-memory-3.12.0`, and the server executable bundled inside it is 8,732,160
+bytes where the `v3.13.0` release publishes 8,739,840 — a different file, not a different label. The
+listener on port 3030 has been up since before that install, so it keeps answering the version it was
+started with. Replacing the payload and restarting that process is what would make the reply read
+`3.13.0`; nothing in this repository does either. A perception layer that rewrites and restarts the
+user's runtime to tidy its own health readout has the boundary backwards.
+
 ## Install
 
 **From source.** `npm install`, `npm run build`, then `chrome://extensions` → Developer mode →
 Load unpacked → select `dist/`. This is the only install path that works today.
 
 > **Chrome Web Store — not yet listed.** The submission archive is built and attached to the
-> [`v0.2.1` release](https://github.com/farmountain/hipcortex_memory_chrome_extension/releases/tag/v0.2.1)
-> as `hipcortex-chrome-extension-v0.2.1.zip`. The listing's short description is the manifest's
+> [`v0.2.2` release](https://github.com/farmountain/hipcortex_memory_chrome_extension/releases/tag/v0.2.2)
+> as `hipcortex-chrome-extension-v0.2.2.zip`. The listing's short description is the manifest's
 > `description`, and it reads:
 >
-> > **Stop losing your AI conversations.** Capture ChatGPT, Claude, Grok, Gemini and DeepSeek into a
-> > memory you own, on your own machine.
+> > **Stop losing your AI conversations.** Keep ChatGPT, Claude, Grok, Gemini and DeepSeek chats in a
+> > private memory on your own machine.
 >
 > That is 129 characters against the store's 132-character limit, and it is the field the dashboard
 > makes read-only after the first upload — so it was settled before submission rather than after.
-> The full listing copy is in [docs/STORE.md](./docs/STORE.md) §3.
+> `0.2.2` is the release that rewrote it: the sentence it replaced said *own* twice and named the
+> mechanism instead of the result, and **private** is the word that separates this from every other
+> tool that also reads a ChatGPT conversation. The full listing copy is in
+> [docs/STORE.md](./docs/STORE.md) §3.
 >
 > Uploading the archive is a manual step a maintainer performs; until
 > that happens there is no listing to install from, and this section will not pretend otherwise.
@@ -115,6 +131,15 @@ The extension is not the retention boundary — and that is *not* permission to 
 unacknowledged capture. A queue entry is removed only on positive acknowledgement from the
 runtime (see [docs/PROTOCOL.md](./docs/PROTOCOL.md) §5). There is no loss counter, because there
 is no path that loses anything.
+
+One thing the extension does keep, and this section would mislead without it: a **local search
+index**, holding one bounded and truncated copy of each *delivered* conversation so that search
+still answers while the runtime is stopped. It is a cache keyed to an acknowledgement rather than a
+second retention boundary — nothing enters it before the runtime has confirmed delivery, the oldest
+record is evicted at the bound, and the popup clears it in one action. `0.2.2` corrected both
+[docs/PRIVACY.md](./docs/PRIVACY.md) and `docs/STORE.md`, which until then claimed the extension kept
+no copy at all; the store's single-purpose box is submitted to a reviewer against the permission list,
+so that claim was the most expensive place to be wrong.
 
 What that rules out from this repository, permanently:
 
@@ -257,24 +282,32 @@ broken one, so `npm run build` before claiming a change works is a rule, not a s
   [docs/PROTOCOL.md](./docs/PROTOCOL.md) §9.
 - Provider fixtures are structurally faithful but synthetic. They make the selector ladders
   regression-proof; they are not evidence that a rung matches today's live DOM.
-- Every claim about a **rendered browser surface is unrun by this repository's own gates.** The specs
-  boot the shipped HTML and the shipped controller under jsdom, which proves what the page sends and
+- Every claim about a **rendered browser surface is unrun by `npm run verify`.** That chain stops at
+  jsdom, which boots the shipped HTML and the shipped controller and proves what the page sends and
   renders, not that Chrome paints it: the popup's online/offline indicator, the manual add, the
   context-menu capture, the side panel via Ctrl/Cmd+Shift+H, the options **Save** plus test
   connection, a live capture with `autoCapture` on, and a real cross-provider context injection all
-  need an unpacked load of `dist/`.
-  - The maintainer does run two such loads from a gitignored directory, and they are what the numbers
-    below were read from. **They are not reproducible from a clone**, so treat them as a reported
-    measurement rather than as a gate. Last re-run on `2026-09-17` against the `0.2.1` tree: a
-    popup/options/side-panel pass over a real
-    Chromium reading the shipped `dist/` reached **26 of 26** checks — including that a fresh profile
+  need an unpacked load of `dist/`. Two commands outside that chain do reach that load.
+  - Those two are `npm run test:browser` and `npm run test:browser:providers`, and both are tracked
+    commands rather than a private ritual, so a clone can re-run them. The first launches its own
+    Chromium with `--load-extension=dist` and drives it over the Chrome DevTools Protocol; like the
+    second it has no dependencies beyond Node 22's global `fetch` and `WebSocket`, and honours
+    `HIPCORTEX_CHROMIUM` if the browser is somewhere unusual. The second fulfils navigation from
+    `tests/fixtures/` so the shipped `dist/content.js` executes against a real provider origin, and
+    opens no socket to any provider at all. Re-run on `2026-09-19` against the `0.2.2` tree: the
+    popup / options / side-panel pass reached **37 of 37** checks — including that a fresh profile
     reports passive capture on, and that clicking **Capture this conversation** on a page that is not
     a supported site answers with a typed `PAGE_NOT_WATCHED` sentence and re-enables the button — and
-    a capture pass that fulfils navigation from the provider fixtures so the real bundle runs on them
-    reached **53 of 53**, capturing five conversations with `autoCapture` at its shipped default,
-    reporting `refused=0` and `paused=false`, and writing nothing to the live core. `0.2.1` ships the
-    same code as `0.2.0` — the only difference reaching the archive is the manifest `version` — so
-    these are not new numbers, they are the same ones re-read on the rebuilt bundle.
+    the capture pass reached **53 of 53**, capturing five conversations with `autoCapture` at its
+    shipped default, reporting `refused=0` and `paused=false`, and writing nothing to the live core.
+    Both aim their write paths at a stub or a dead loopback port, so a green run leaves the real
+    memory store untouched. `0.2.2` ships the same compiled output as `0.2.1` — the two lines that
+    reach the archive are manifest metadata — so these are the same numbers re-read on the rebuilt
+    bundle rather than new ones.
+  - What neither command can reach is the **gesture**. The OS context-menu click and the physical
+    Ctrl/Cmd+Shift+H keystroke are raised by browser chrome, above the renderer, where no synthetic
+    input event lands. The handlers behind them are ordinary code and the specs drive them; the two
+    clicks are a person's. That residue is the whole reason screen 8.12 is still unticked.
 - The migration's machine leg is executed and recorded — one capture read back by REST export, the
   `hipcortex backup` CLI and MCP `search_memory`, with the same messages in the same order — but the
   capture was produced by this repository's own egress code under Node, not by a real provider tab.

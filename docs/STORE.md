@@ -29,11 +29,11 @@ repository already asserts.
 
 | | |
 |---|---|
-| File | `hipcortex-chrome-extension-v0.2.1.zip` |
+| File | `hipcortex-chrome-extension-v0.2.2.zip` |
 | Built by | `npm run package` |
-| Size | 249,060 bytes |
+| Size | 249,061 bytes |
 | Entries | 171 |
-| SHA-256 | `BFE3B3C975CCB5D281C4437C8F448B7716F6AD4CC2976BB7B6CF188A2BA65AC8` |
+| SHA-256 | `5167E2556DEF93B50E18C189B8921745FD56DC29DBA16F82B9825F1E61D45FE0` |
 | `manifest.json` | at the archive root, and **not** byte-identical to `public/manifest.json`: the archived copy has no `key`, because the store refuses any package that carries one (§11) |
 
 `npm run package` refuses to write an archive whose entry names contain a backslash, whose
@@ -61,6 +61,16 @@ file is `public/manifest.json`, whose only differing line is the `version` field
 same length as the one it replaced, so the size and entry count above are unchanged; they were
 re-measured on the new file rather than carried forward, and the SHA-256 is nevertheless a different
 number, for the reason in the next sentence.
+
+`0.2.2` changes no shipped source either. The same restricted diff reports one changed file,
+`public/manifest.json`, and two changed lines inside it — `version` and `description`. Both lines are
+the same number of characters as the ones they replaced, and the compiled output under `dist/` is
+correspondingly unchanged, which is why the entry count is still 171. The size moved by one byte;
+that figure carries no signal here, because the writer stamps every entry with its build time, so two
+builds of an identical tree do not produce identical archives. What `0.2.2` is *for* is the second of
+those two lines: the dashboard locks the description once the item has been uploaded, so changing it
+after publication costs another version, and this is the last release before publication. §3 records
+what changed in the sentence and why.
 
 The in-repo writer stamps every entry with the time it was built, so a rebuild is never
 byte-identical to a previous one — if you rebuild, upload that file and hash the file you uploaded
@@ -128,11 +138,20 @@ let you edit package metadata after upload, so a divergence here means a version
 what a search result shows first, which is why it opens with the problem rather than the mechanism.
 
 ```
-Stop losing your AI conversations. Capture ChatGPT, Claude, Grok, Gemini and DeepSeek into a memory you own, on your own machine.
+Stop losing your AI conversations. Keep ChatGPT, Claude, Grok, Gemini and DeepSeek chats in a private memory on your own machine.
 ```
 
 129 characters against a limit of 132. Three characters of headroom is deliberate: the field cannot
 be edited in the dashboard, and a version bump is the only way to change it afterwards.
+
+`0.2.2` rewrote this sentence and kept it at 129 characters, so the headroom above is unchanged.
+Two things were wrong with the previous wording. *"a memory you own, on your own machine"* said
+**own** twice in seven words, and *"Capture … into"* named the mechanism rather than the result —
+what the extension does for a reader is keep the conversations, not capture them. The word **private**
+is now in the sentence because it is the differentiator: every other tool in this category also
+captures a ChatGPT conversation, and almost none of them can say the copies stay on the machine they
+were made on. The provider list is untouched, and it is the part that costs the most budget — 42
+characters, a third of the field, spent naming five products a reader is searching for by name.
 
 ### Detailed description
 
@@ -206,8 +225,30 @@ happens to a captured conversation. The text below uses the room the box has.
 #### Single purpose description
 
 ```
-Capture the AI conversations a user reads and writes in their browser, and deliver them unchanged to a HipCortex runtime the user runs on their own computer. The extension reads conversation text on the five AI sites it supports, and only there, and only once the user has allowed those sites through Chrome's own permission prompt; plus a page's title and URL or the user's selected text when the user explicitly captures one. It forwards that content over native messaging or loopback HTTP to the user's own runtime, and keeps it in local storage only until that runtime acknowledges delivery. The extension does not analyse, summarise, rank, index or retain conversation content for itself, sends nothing to the developer, and declares no remote destination. There is no server operated by the developer, no account, no sign-in, no sync and no analytics.
+Capture the AI conversations a user reads and writes in their browser, and deliver them unchanged to a HipCortex runtime the user runs on their own computer. The extension reads conversation text on the five AI sites it supports, and only there, once the user has allowed those sites through Chrome's own permission prompt; plus a page's title and URL, or the selected text, when the user explicitly captures one. It forwards that content over native messaging or loopback HTTP to the user's own runtime, and holds it in local storage until the runtime acknowledges delivery, then keeps one bounded local copy so search answers while the runtime is stopped. That copy is truncated, evicted oldest-first, clearable from the popup, and removed with the extension. It does not summarise or analyse the content, sends nothing to the developer, and declares no remote destination. There is no developer-operated server, no account, no sign-in, no sync and no analytics.
 ```
+
+964 characters against the box's limit of 1,000.
+
+**The text above replaced a statement that was untrue, and that is the reason to read this section
+again rather than trust a paste from an earlier draft.** What it used to say was that the extension
+*"does not analyse, summarise, rank, index or retain conversation content for itself"*, and that
+content is kept in local storage *"only until"* the runtime acknowledges it. Shipped code
+contradicts both halves. `src/index/local.ts` writes a copy of every acknowledged capture — the
+conversation's own text, truncated, plus its tokens — into `chrome.storage.local` under the key
+`hipcortex.capture.index`, and leaves it there after the acknowledgement. That is the local search
+index, it is what lets search answer while the runtime is stopped, and `docs/PRIVACY.md` discloses it
+in the retention list and again in the removal instructions. The single-purpose box did not, and the
+box is the one place a reviewer reads against a permission list for exactly this kind of claim. A
+statement that denies indexing that the package performs is the sort of inconsistency that costs a
+submission, so it is corrected rather than softened.
+
+The corrected text says what happens in the order it happens — held until an acknowledgement, then one
+bounded copy outliving it. It still declines to write the bound as a number. The bound is
+`INDEX_MAX_RECORDS` in `src/index/local.ts`, and a form that cannot be edited after upload should not
+carry a constant that source is free to change; *bounded*, *truncated* and *evicted oldest-first* are
+the properties a reviewer needs, and each of them is a property of the mechanism rather than of the
+value it currently holds.
 
 ## 5. Privacy — data disclosure
 
@@ -222,7 +263,7 @@ demonstrably reads is the failure mode that gets a submission rejected.
 | Health information | no | Not read, not inferred, not requested. |
 | Financial and payment information | no | Not read, not inferred, not requested. The extension has no payment path of any kind. |
 | Authentication information | **yes** | The options page has an optional **API key** field, and a non-empty value is sent to the configured runtime as `Authorization: Bearer` and `X-API-Key`. It is blank by default and no AI-site credential is ever read. It is declared rather than omitted for one reason worth knowing: settings live in `chrome.storage.sync`, so a key the user enters reaches the user's own Google account. See the note below. |
-| Personal communications | **yes** | The conversation turns on the five supported sites — what the user typed and what the model replied. Held in the extension's own local queue and search index until the runtime acknowledges delivery, then not kept. Delivered over native messaging or loopback HTTP to a runtime on the user's own computer. Never sent to the developer, who operates no server. |
+| Personal communications | **yes** | The conversation turns on the five supported sites — what the user typed and what the model replied. Held in the extension's own local queue until the runtime acknowledges delivery; after that one bounded, truncated copy remains in the local search index, so search still answers while the runtime is stopped. That copy is evicted oldest-first, clearable from the popup, and removed with the extension. Delivered over native messaging or loopback HTTP to a runtime on the user's own computer. Never sent to the developer, who operates no server. |
 | Location | no | No region, IP address, GPS coordinate or nearby-device information is read or inferred. The only addresses the manifest pre-authorises are `127.0.0.1` and `localhost`. |
 | Web history | **yes** | Every capture carries the conversation's canonical URL, its title when the provider exposes one, and the capture timestamp, and the form's own definition of this category is the pages a user visited together with associated data such as page title and time of visit. Nothing outside the six declared addresses is recorded, the history API is not used, and a URL is stored only for a conversation the user captured — by clicking capture, or by having allowed that site while passive capture is on. The extension reads no site the user has not allowed, so the default state of a fresh install is that nothing at all is recorded. |
 | User activity | no | No network monitoring, click, mouse position, scroll or keystroke is recorded, and `chrome.tabs.onUpdated` has no call site. The extension's only observation is of the conversation DOM on the five supported sites, which is the thing it exists to read. |
@@ -236,6 +277,24 @@ information* is `yes` because the options page holds a credential field. Both ar
 that the declaration is a superset of what the code does rather than a subset, which is the direction
 the risk runs in: an undeclared category is a policy violation, an over-declared one is a sentence of
 explanation. The account owner can flip either back after reading the reasoning here.
+
+**A third correction landed with `0.2.2`, in the personal-communications row.** It used to say content
+is held *"until the runtime acknowledges delivery, then not kept"*. The queue does release on
+acknowledgement; the search index does not, and that row is the one a reviewer reads for what happens
+to a conversation. The row now describes the bounded copy that outlives the acknowledgement, in the
+same terms §4 uses. The lesson is worth more than the fix: a disclosure can name a mechanism
+correctly — *"local queue and search index"* — and still get the retention wrong one clause later, so
+each clause about lifetime is worth checking against `src/index/local.ts` rather than against the
+paragraph above it.
+
+The same sentence was wrong in a second place, and that one mattered more. `docs/PRIVACY.md` is the
+policy this submission publishes as a URL, and its storage section ended *"The extension keeps no copy
+of acknowledged captures."* That is the opposite of what `recordAcknowledgedCapture` does, and it was
+the one claim in the document set a reader could falsify from the extension's own popup, which reports
+how many conversations are searchable offline. The policy now describes the queue and the index as the
+two kinds of local copy they are, and its deletion list says that clearing the index removes the
+extension's remaining copy of a delivered conversation. Correcting the box without the policy would
+have left the more exposed of the two documents wrong.
 
 **One consequence of the API key worth acting on rather than only disclosing.** `apiKey` is part of
 `DEFAULT_SETTINGS`, and durable settings are written to `chrome.storage.sync`, so a key the user
@@ -533,6 +592,13 @@ first thing that gets a listing rejected when they do not match the extension.
   `DEFAULT_SETTINGS` and therefore reaches browser-synced storage. Moving it to
   `chrome.storage.local` is the change that would let *Authentication information* be answered `no`,
   and it is not made here.
+- **That the retention language was already consistent.** It was not, before `0.2.2`. The
+  single-purpose box, the personal-communications row and `docs/PRIVACY.md` each denied, in their own
+  words, a copy of an acknowledged capture that `src/index/local.ts` writes and the popup reports. All
+  three now describe the same mechanism in the same terms, and none of them states a number,
+  deliberately — §4 gives the reason. This is worth a line here because it is the kind of defect that
+  no test in this repository can catch: the assertions compare documents to the manifest, and the
+  manifest does not describe retention.
 
 ## 11. After the first upload — make the extension ID the store's
 
