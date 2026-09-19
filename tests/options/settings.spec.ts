@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
 
 import { bootSurface, submitForm, textOf } from "../helpers/surface.js";
 import { loadWorker } from "../helpers/worker.js";
+import { installFetchMock, jsonBody } from "../helpers/http.js";
 import type { ChromeMock } from "../helpers/chrome-mock.js";
 import { DEFAULT_SETTINGS, TRANSPORT_MODES } from "../../src/types/index.js";
 import type { ExtensionSettings } from "../../src/types/index.js";
@@ -88,6 +89,149 @@ describe("ephemeral handoff never enters sync — G2.7", () => {
     expect(Object.keys(mock.storage.sync.data)).not.toContain("pendingSearch");
     expect(JSON.stringify(mock.storage.sync.data)).not.toContain(SECRET);
     expect(mock.sidePanel.open).toHaveBeenCalledWith({ windowId: 7 });
+  });
+});
+
+/**
+ * The two context-menu items that write a record, and the two commands the manifest binds.
+ *
+ * The item above is asserted where the question is *where the text lands*; these ask a different
+ * question — **what reaches the core** — so they read the request the recorder captured rather than
+ * a storage key. The add path is `sendRecord`, so the assertion is on the wire body and not on an
+ * internal call, which is the same reason `tests/router/import.spec.ts` asserts `recorder.urls()`.
+ *
+ * Together these are exactly the halves of task 8.12 that a browser cannot raise: the OS menu click
+ * and the physical keystroke are raised by the browser chrome, above the renderer, so no CDP input
+ * event can synthesise them. The handlers are ordinary code, and these drive them for real.
+ *
+ * `developer` is named rather than left on `auto` for the reason `tests/router/import.spec.ts`
+ * gives: `auto` tries Native Messaging first and the chrome mock's port never answers, so the
+ * measurement would be of a response timeout rather than of the menu item.
+ */
+describe("a context-menu capture reaches the core — G1.7 surface", () => {
+  const ADD_URL = "http://127.0.0.1:3030/memory/add";
+  const TAB = { id: 1, url: "https://example.com/p", title: "Example page", windowId: 7 };
+
+  async function driveMenuItem(info: Record<string, unknown>, tab = TAB) {
+    const recorder = installFetchMock(() => jsonBody({ success: true, record_id: "core-1" }));
+    const { mock } = await loadWorker({
+      sync: { ...DEFAULT_SETTINGS, transportMode: "developer", defaultActor: "menu-actor" },
+    });
+    const onClicked = mock.contextMenus.onClicked.addListener.mock.calls[0]?.[0] as (
+      i: Record<string, unknown>,
+      t: Record<string, unknown>
+    ) => Promise<void>;
+    expect(typeof onClicked).toBe("function");
+
+    await onClicked(info, tab);
+
+    const request = recorder.requests.find((candidate) => candidate.url === ADD_URL);
+    return {
+      urls: recorder.urls(),
+      request,
+      posted: request?.json as Record<string, unknown> | undefined,
+    };
+  }
+
+  it("posts a selected passage as `selected`, carrying the page metadata", async () => {
+    const { request, posted } = await driveMenuItem({
+      menuItemId: "hipcortex-add-selection",
+      selectionText: SECRET,
+      pageUrl: "https://example.com/p",
+    });
+
+    expect(request?.method).toBe("POST");
+    expect(posted).toMatchObject({
+      actor: "menu-actor",
+      action: "selected",
+      target: SECRET,
+      metadata: { url: "https://example.com/p", title: "Example page", source: "context-menu" },
+    });
+  });
+
+  it("truncates a very long selection at 2000 characters", async () => {
+    const { posted } = await driveMenuItem({
+      menuItemId: "hipcortex-add-selection",
+      selectionText: "s".repeat(2500),
+      pageUrl: "https://example.com/p",
+    });
+
+    expect((posted?.["target"] as string).length).toBe(2000);
+  });
+
+  it("posts the page itself as `visited`, read from the tab rather than from the info", async () => {
+    const { posted } = await driveMenuItem(
+      { menuItemId: "hipcortex-add-page" },
+      { ...TAB, url: "https://example.com/other", title: "Other page" }
+    );
+
+    expect(posted).toMatchObject({
+      action: "visited",
+      target: "Other page",
+      metadata: { url: "https://example.com/other", title: "Other page", source: "context-menu-page" },
+    });
+  });
+
+  it("sends nothing for the add-selection item when the click carried no selection text", async () => {
+    const { urls } = await driveMenuItem({ menuItemId: "hipcortex-add-selection" });
+
+    expect(urls).toEqual([]);
+  });
+});
+
+describe("the keyboard commands the manifest binds", () => {
+  const ADD_URL = "http://127.0.0.1:3030/memory/add";
+  const ACTIVE = { id: 3, url: "https://example.com/p", title: "Example page", windowId: 7 };
+
+  async function driveCommand(command: string, prepare?: (mock: ChromeMock) => void) {
+    const recorder = installFetchMock(() => jsonBody({ success: true, record_id: "core-1" }));
+    const { mock } = await loadWorker({
+      sync: { ...DEFAULT_SETTINGS, transportMode: "developer", defaultActor: "command-actor" },
+      tabs: { active: ACTIVE },
+    });
+    prepare?.(mock);
+
+    const onCommand = mock.commands.onCommand.addListener.mock.calls[0]?.[0] as (
+      c: string
+    ) => Promise<void>;
+    expect(typeof onCommand).toBe("function");
+
+    await onCommand(command);
+
+    const request = recorder.requests.find((candidate) => candidate.url === ADD_URL);
+    return {
+      urls: recorder.urls(),
+      posted: request?.json as Record<string, unknown> | undefined,
+      mock,
+    };
+  }
+
+  it("opens the side panel on the active window and posts no record", async () => {
+    const { mock, urls } = await driveCommand("open-side-panel");
+
+    expect(mock.sidePanel.open).toHaveBeenCalledWith({ windowId: 7 });
+    // Opening a panel is not a capture. If this ever stops being true, the assertion above would
+    // still pass and the extra write would go unnoticed, so it is pinned separately.
+    expect(urls).toEqual([]);
+  });
+
+  it("posts the selection it reads from the active tab, marked `keyboard-shortcut`", async () => {
+    const { posted } = await driveCommand("quick-add-memory", (mock) => {
+      mock.scripting.executeScript.mockResolvedValue([{ result: SECRET }]);
+    });
+
+    expect(posted).toMatchObject({
+      actor: "command-actor",
+      action: "selected",
+      target: SECRET,
+      metadata: { url: "https://example.com/p", title: "Example page", source: "keyboard-shortcut" },
+    });
+  });
+
+  it("posts nothing for quick-add when the page has no selection", async () => {
+    const { urls } = await driveCommand("quick-add-memory");
+
+    expect(urls).toEqual([]);
   });
 });
 
