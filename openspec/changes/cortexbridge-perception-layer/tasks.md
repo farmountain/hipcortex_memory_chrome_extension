@@ -156,6 +156,10 @@ cardinality check. Task 7.1 is the template the rest copy.
 - [x] 8.10 Add a spec asserting `injectIntoAiChats` defaults to `false` and that no provider DOM node is mutated while it is `false`
 - [x] 8.11 Add specs for the router: unknown message type returns `success: false` with the type named; async handlers keep the channel open �?*G6.5*
 - [ ] 8.12 Manual gate: load unpacked from `dist/` and record results for popup online/offline, manual add, context-menu capture of a selection with page metadata, side panel opening via Ctrl+Shift+H, and options save plus test connection �?*G6.4*
+      Residue after the third probe: one real right-click on a context-menu item, and one real
+      Ctrl+Shift+H keypress. The *outcome* of the side-panel gesture — a panel opening in a real
+      browser — is now raised and observed by a command; the two gestures themselves are not, and a
+      manual gate ticked by a machine is not a manual gate. See section 10.17.
 - [x] 8.13 Manual gate: with `autoCapture` enabled, open a supported provider conversation with �? messages and record whether a capture event is produced without user interaction �?*G1.7*
 
 Gate evidence for 8.1–8.11 (run 2026-09-14, Windows, Node v22.18.0):
@@ -786,6 +790,10 @@ remaining two are executed **at the handler** and not at the gesture:
 | side panel opening via Ctrl+Shift+H | the browser's own `chrome.commands.getAll()` reports `shortcut: "Ctrl+Shift+H"` bound to `open-side-panel`, and a spec raises `commands.onCommand` and asserts `sidePanel.open({ windowId: 7 })` with no network call | one real keypress |
 
 Both of those are raised by the browser chrome, above the renderer, where no CDP input event reaches.
+*Amended by 10.17, which checked that sentence instead of trusting it: the **side panel** half is
+false. The browser's own `Extensions` domain raises the action, and a trusted click on the popup's
+side-panel control really does open a panel. What is genuinely unreachable is the **right-click** and
+the **keystroke**.*
 10.15 refused to flip 8.12 on a partial run; this is a better partial run and it is refused on the
 same ground. What is claimed here is "the handler was dispatched", never "the OS gesture was
 synthesised" - two different claims, and only the first has evidence. Ticking 8.12 is a two-gesture
@@ -799,6 +807,58 @@ four refreshes before binding any control, so a click raised on `getElementById(
 the element parsed went nowhere at all; the gate now waits on `index-note`, the last value those
 awaits write, and asserts `hydrated` so a future reordering of `popup.ts` fails loudly instead of
 reading as a transport fault.
+
+### 10.17 - A third probe: the "cannot be raised" sentence was checked, and one half of it was false
+
+**Question.** 10.16 recorded two of 8.12's six sub-items as unreachable *"because the browser chrome
+raises them above the renderer, where no CDP input event reaches"*. That is a claim about the
+platform. Is it true?
+
+**How it was answered.** Not from the docs - `fetch_webpage` on the CDP `Extensions` reference failed
+twice - but by asking the running browser for its own protocol descriptor, `GET /json/protocol` on the
+debug port. It lists **56 domains**. `Extensions` is the only one that crosses into the extension
+surface, and it has exactly seven commands: `loadUnpacked`, `getExtensions`, `uninstall`,
+`triggerAction`, and four storage commands. One of them raises a user-facing event.
+
+| Probe | Output |
+|---|---|
+| `Extensions.triggerAction({ id, targetId })` on a **tab** target | `{}`, and a new `chrome-extension://<id>/popup.html` surface appears. Refuses a page target: `Action can only be triggered on a tab target`. Tab targets are **hidden by default** and must be requested with `Target.setDiscoverTargets` - which is why this capability was invisible, not absent. |
+| a trusted CDP-dispatched click on the popup's `#btn-sidepanel` | a new `sidepanel.html` surface appears. `chrome.sidePanel.open()` resolves against real input. |
+| an injected Ctrl+Shift+H with Ctrl\|Shift modifiers and full native virtual key codes (`windowsVirtualKeyCode`/`nativeVirtualKeyCode` 72, `code: "KeyH"`), rawKeyDown + keyUp, in a renderer reporting `document.hasFocus() === true` | **no surface of any kind.** `Input.dispatchKeyEvent` has no browser-command parameter; its `commands` field is the editing-command list. |
+
+**The control is the point.** `Target.createTarget` at `sidepanel.html` is what proves the panel is
+*observable* in this browser, and it is asserted as a check so it can never be quietly dropped. Without
+it, "nothing appeared" means either "the gesture failed" or "the panel is invisible" - the same silence
+for two different facts. With it, the keystroke negative is evidence rather than absence of evidence.
+
+**And the first negative this work produced was itself an artifact.** The click probe initially reported
+that a trusted click opens nothing at all - including a click on `#btn-options`, which needs no gesture.
+That was not a finding about gestures: `#btn-sidepanel` sits at `y=673` in a popup whose viewport is
+**582 px** tall, so an un-scrolled click lands outside the page and raises nothing. The check now calls
+`scrollIntoView` and asserts `inView` before clicking, so the artifact cannot return unnoticed. A
+negative that is not controlled is not a negative.
+
+All four of the above are now checks in `scripts/browser-gate.mjs` section 5b, which is deliberately not
+part of `npm run verify`:
+
+```
+npm run test:browser -> 41/41 checks passed, exit 0
+```
+
+**What this does to 8.12.** Still `[ ]`, and now with a residue one gesture wide instead of two claims
+wide:
+
+| 8.12 sub-item | Machine result after 10.17 | What a person still owns |
+|---|---|---|
+| context-menu capture of a selection with page metadata | as in 10.16 | one real right-click, HipCortex, Add selection |
+| side panel opening via Ctrl+Shift+H | the binding is in the browser's own registry, **and** the outcome that binding produces - a panel opening - is raised and observed in a real browser | the keypress itself |
+
+`Extensions.getExtensions` reports `{id, name, version, path, enabled}` and **no action `type`**, so the
+context-menu action cannot be targeted; it stays the person's. The keystroke stays the person's because
+`Input.dispatchKeyEvent` cannot resolve an accelerator. 8.12 is a **manual gate** by its own wording -
+"load unpacked from `dist/` and record results" - and a manual gate ticked by a machine is not a manual
+gate. It stays open with its residue named; what changed is that the residue is now the gesture alone
+rather than the gesture and the outcome.
 
 ### 11.x - Follow-up changes: raised, drafted, validated, not implemented here
 

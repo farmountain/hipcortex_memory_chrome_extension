@@ -897,21 +897,35 @@
       "id": "Q42",
       "stage": "validation-planning",
       "critical": true,
-      "question": "8.12's last two results - a context-menu capture of a selection, and a side panel opened via Ctrl+Shift+H - cannot be raised by any automated input, because both are handled by the browser chrome above the renderer. What closes them?",
+      "question": "8.12's last two results - a context-menu capture of a selection, and a side panel opened via Ctrl+Shift+H - cannot be raised by any automated input, because both are handled by the browser chrome above the renderer. What closes them? Narrowed after the third probe, which checked that premise instead of trusting it: it is false for the outcome of the side-panel binding, which a trusted click really does raise, and true only for the two gestures themselves - the right-click and the keypress.",
       "state": "open-with-exit",
-      "attempts": 3,
+      "attempts": 4,
       "artifactsTried": [
         "scripts/browser-gate.mjs - it registers and re-registers all three menu ids and reads chrome.commands.getAll(), which proves registration and proves nothing about the gesture",
-        "CDP Input.dispatchKeyEvent - a key event is delivered to the renderer, and chrome.commands.onCommand is resolved above it, so the shortcut cannot be fired this way",
+        "GET /json/protocol in the live Chromium the harness spawns - 56 domains, and an Extensions domain that is experimental and offers 7 commands, among them triggerAction(id, targetId), loadUnpacked(path) and getExtensions(). This repository had never enumerated that surface",
+        "Extensions.triggerAction - probed, not reasoned. With the id alone it answers Invalid parameters; with a page target id it answers Action can only be triggered on a tab target; with the tab target id it returns an empty object and really raises the popup. That answer falsified the side-panel half of this question's premise",
+        "Extensions.getExtensions - the entry is id, name, version, path, enabled, with no type field, so an action of type contextMenu cannot be told apart from a popup action and cannot be targeted this way",
+        "CDP Input.dispatchKeyEvent - probed against a focused renderer rather than reasoned about: document.hasFocus() true, Ctrl+Shift+H dispatched as rawKeyDown then keyUp with modifiers 2|8 and windowsVirtualKeyCode 72, and no side panel appeared - while a target created at sidepanel.html did appear under the same observation. The keystroke is the residue",
+        "CDP Input.dispatchMouseEvent - probed against the popup's own side-panel control after scrolling it into view, which opens a real side panel. The first attempt reported nothing at all because the control sat below the popup viewport, and the positive control that exposed it was a click on a control whose handler needs no gesture",
         "tests/options/settings.spec.ts - it raises both handlers directly, which covers the behaviour behind each gesture and cannot cover the gesture itself",
         "openspec/changes/cortexbridge-perception-layer/tasks.md section 10.15 - it refused to tick 8.12 on a partial run, and that refusal is the standard this entry keeps"
       ],
       "evidence": [
         "$ npm run test:browser -> 37/37 checks passed, exit 0, with all three context-menu ids reported as already present in a live registry and shortcut Ctrl+Shift+H bound to open-side-panel",
-        "$ npx vitest run tests/options/settings.spec.ts -> 14 passed, exit 0, covering the exact request each context-menu branch produces and sidePanel.open({windowId: 7}) for the shortcut branch"
+        "$ npx vitest run tests/options/settings.spec.ts -> 14 passed, exit 0, covering the exact request each context-menu branch produces and sidePanel.open({windowId: 7}) for the shortcut branch",
+        "$ npm run test:browser -> 41/41 checks passed, exit 0, after the third probe; the four added checks are the action invocation, its control, the keystroke negative and the trusted click",
+        "Extensions.triggerAction on the tab target -> result {}, and the popup URL went from one occurrence to two, so the browser's own action invocation raises the real popup",
+        "a trusted click on the popup's own side-panel control -> new surfaces /sidepanel.html, with the button scrolled into view and inView true",
+        "an injected Ctrl+Shift+H -> renderer focused true, new surfaces empty, while the control in the same run did appear - so that negative is controlled rather than silent"
       ],
-      "exitCondition": "A person with dist/ loaded through chrome://extensions performs the two gestures once - a right-click on a selection, then the HipCortex menu and Add selection, then Ctrl+Shift+H - records the capture that reaches the core and the side panel that opens, and writes both results into section 8 of openspec/changes/cortexbridge-perception-layer/tasks.md, which is the section that can then tick 8.12 and supersede this question.",
-      "doesNotEstablish": "Nothing here is claimed as established. The handlers behind both gestures are covered by spec and the gestures themselves have been performed by no one, which is the entire content of this entry."
+      "exitCondition": "A person with dist/ loaded through chrome://extensions performs the two gestures that no probe reaches - a right-click on a selection followed by the HipCortex menu item, and Ctrl+Shift+H - and writes both results into section 8 of openspec/changes/cortexbridge-perception-layer/tasks.md, which is the section that can then tick 8.12 and supersede this question. The side panel no longer waits on that: the outcome its binding produces is raised by a trusted click in the browser gate, so what remains open is the gesture itself.",
+      "doesNotEstablish": "That a person has performed either gesture, and therefore that the path through Chrome's native menu and its global shortcut works end to end. What the probes establish is narrower and asymmetric: the browser's own action invocation raises the real popup, and a trusted click on the popup's control opens a real side panel, so one outcome is observed rather than assumed - while the context-menu click and the keypress have been performed by no one. It also does not establish that a fixture DOM matches a live provider page, so a signed-in conversation can still exercise a composer, a virtualised turn list or an adapter rung that no fixture reproduces.",
+      "reopens": ["Q42"],
+      "newEvidence": [
+        "This is a self-re-open, and the evidence for it is a probe rather than a second opinion. Section 10.17 of openspec/changes/cortexbridge-perception-layer/tasks.md records that the premise above was tested and half of it was false",
+        "GET /json/protocol -> the live Extensions domain, which this repository had never enumerated and which exposes an action invocation on a tab target",
+        "$ npm run test:browser -> 41/41 checks passed, exit 0, with the falsifying checks pinned in the gate, so the finding cannot decay back into the reasoning it replaced"
+      ]
     },
     {
       "id": "Q43",

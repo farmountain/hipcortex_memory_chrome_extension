@@ -1,13 +1,17 @@
 # End-State Goals and Measurable Acceptance Criteria
 
 **Status:** authoritative for scope decisions. **Owner:** this repository (perception layer).
-**Last verified:** 2026-09-19. Every criterion this repository owns has been executed: the gate
+**Last verified:** 2026-09-20. Every criterion this repository owns has been executed: the gate
 chain was run and each command's exit code recorded, the whole spec suite was run, and the
 end-to-end round trip was executed against a live core at `127.0.0.1:3030`. The two browser gates
-that used to be manual are commands now: `npm run test:browser` (37/37) and
-`npm run test:browser:providers` (53/53), both against a real Chrome with `dist/` loaded — which
+that used to be manual are commands now: `npm run test:browser` and
+`npm run test:browser:providers`, both against a real Chrome with `dist/` loaded — which
 discharges 8.13 outright and leaves 8.12 missing only its two browser-chrome gestures. The quoted
-output is in `openspec/changes/cortexbridge-perception-layer/tasks.md`, groups 9 and 10. What is
+output is in `openspec/changes/cortexbridge-perception-layer/tasks.md`, groups 9 and 10. Group
+10.17 checked that sentence rather than trusting it, and it is narrower than it first read: what no
+automated input raises is the two **gestures**, whereas the outcome the side-panel gesture is bound
+to — a panel opening — is raised in that same gate by a trusted click on the popup's own control,
+and the browser's own action invocation raises the real popup. What is
 **not** executed is named rather than hidden: task 8.12's context-menu click and Ctrl+Shift+H
 keypress, raised by the browser chrome above the renderer where no automated input reaches (8.12
 stays open for exactly those two and nothing else), Consumer Mode's
@@ -58,7 +62,7 @@ Consequences that decide several goals below, and that are not negotiable within
 | **G4** | Migrate cognitive state across boundaries | core, plus one new follow-up change | **export/import verified** (4.1, 4.2, and the version refusal 4.3), and the CLI/MCP re-read of a capture verified live (4.4); the browser half of 4.4 (a fixture-DOM half now runs as a command; a live signed-in page does not) and G4.5's manual gate are unrun |
 | **G5** | Cognitive distillation of conversations | core, via a defined handoff | endpoint pinnable; core-side behaviour still unspecified |
 | **G6** | Every claim provable by a command | this repo | **verified** — five commands, exit 0 each (10.6) |
-| **G7** | The extension cannot be turned into a silent exfiltration channel | this repo | **verified by spec**, and the banner rendered and the loopback-only `host_permissions` re-read in a real browser (`npm run test:browser`, 37/37, exit 0); 8.12 stays open only for its two browser-chrome gestures |
+| **G7** | The extension cannot be turned into a silent exfiltration channel | this repo | **verified by spec**, and the banner rendered and the loopback-only `host_permissions` re-read in a real browser (`npm run test:browser`, exit 0); 8.12 stays open only for its two browser-chrome gestures, and group 10.17 narrowed even that residue to the gestures themselves, because the panel one of them is bound to is raised by a trusted click |
 | **G8** | Provider DOM drift degrades to a typed error, not a wrong capture | this repo | **verified by spec** across five providers |
 | **G9** | An install that completes, or says exactly what is missing | this repo | **verified by spec**; the host is built and the register-and-load step is a documented command |
 
@@ -692,11 +696,13 @@ Decisions made here without further consultation, each with the condition that w
    to be maintained and a sentence that quotes a suite of 832 tests is wrong the day the suite
    reaches 947. Run the gates for the numbers; quoted output is in `tasks.md` groups 9 and 10. That
    is a real advance, and it stops short of the product: 8.13's gate runs as a command
-   (`npm run test:browser:providers`, 53/53) and 8.12's as another (`npm run test:browser`, 37/37),
+   (`npm run test:browser:providers`) and 8.12's as another (`npm run test:browser`),
    so a probe now does observe a rendered banner, a loaded unpacked build and a real provider's DOM
    — with two exceptions that stay a person's, because 8.12's context-menu click and its
    Ctrl+Shift+H keypress are raised by the browser chrome above the renderer, where no automated
-   input reaches. Still unrun: Consumer Mode's registered leg — the host is built, installed
+   input reaches. Group 10.17 probed that claim and narrowed it: the two **gestures** are still the
+   person's, while the side panel one of them is bound to - an outcome, not a gesture - is raised and
+   observed by that gate. Still unrun: Consumer Mode's registered leg — the host is built, installed
    and answering on this machine, and only Chrome can hand it a port (risk 2) — the POSIX leg of
    the scripts (10.13), and the live signed-in provider page that G4.4 and G4.5 both want.
    A criterion is still met only when its verification has been run and its output quoted — that rule did not relax

@@ -26,12 +26,24 @@
  *         the live core; the popup badge reflects online vs offline truthfully; an options save
  *         persists; manual add clears the field through the real transport; the browser's own
  *         command registry holds the declared bindings; all three context-menu items are
- *         registered.
- * Cannot: the OS menu click and the physical Ctrl+Shift+H keystroke — both are raised by the
- *         browser chrome, above the renderer, so no CDP input event can synthesise them. The
- *         handlers behind them are ordinary code: section 5 proves the menu items exist and that
- *         the browser accepted the key binding, and section 7 drives the shared add path they end
- *         in. What is left to a person is the gesture, not the logic.
+ *         registered; the browser's own action invocation raises the real popup
+ *         (`Extensions.triggerAction` on a tab target — the one CDP command that crosses into the
+ *         extension surface); a trusted click on the popup's side-panel control opens a real side
+ *         panel, observed as a new `sidepanel.html` surface (section 5b).
+ * Cannot: the OS menu click and the physical Ctrl+Shift+H keystroke. This boundary was probed
+ *         rather than reasoned, and section 5b records the probe. In short: the `Extensions`
+ *         domain has seven commands and none of them fires a `chrome.commands` command;
+ *         `Input.dispatchKeyEvent` carries no browser-command field; and an injected Ctrl+Shift+H
+ *         with full native virtual key codes raises no surface at all, in a renderer that reports
+ *         focus. Section 5b also records the control that makes that negative mean something —
+ *         `sidepanel.html` IS observable as a browser surface when something else opens it, so
+ *         "nothing appeared" is the gesture failing rather than the panel being invisible. What
+ *         the keystroke cannot supply, section 5b supplies by another route: the *result* it is
+ *         bound to (a panel opening) is raised by a trusted click and observed. The keystroke is
+ *         the residue, not the outcome. The handlers behind both gestures are ordinary code:
+ *         section 5 proves the menu items exist and that the browser accepted the key binding, and
+ *         section 7 drives the shared add path they end in. What is left to a person is the
+ *         gesture, not the logic.
  *         Also cannot: a live authenticated provider conversation — see
  *         `scripts/provider-capture-gate.mjs` for how far a synthetic fixture gets.
  *
@@ -350,7 +362,14 @@ async function main() {
   const version = await waitForJson(`http://127.0.0.1:${PORT}/json/version`);
   console.log(`  connected  ${version.Browser}  (protocol ${version["Protocol-Version"]})\n`);
   cdp = await Cdp.connect(version.webSocketDebuggerUrl);
-  await cdp.send("Target.setDiscoverTargets", { discover: true });
+  // Tab targets are hidden by default, and `Extensions.triggerAction` refuses every other kind
+  // ("Action can only be triggered on a tab target"). The filter is a first-match-wins list, so the
+  // second entry has to KEEP including everything else — a trailing `{ exclude: true }` would hide
+  // the service worker and every page, which is a mistake this gate has already made once.
+  await cdp.send("Target.setDiscoverTargets", {
+    discover: true,
+    filter: [{ type: "tab", exclude: false }, { exclude: false }],
+  });
 
   /* --- 1. the extension loads ---------------------------------------------- */
   // chrome://extensions is the source of truth for "is it loaded at all". Its
@@ -896,6 +915,187 @@ async function main() {
     `  note: contextMenus.onClicked is ${swProbe?.menuEvent ?? "?"} ` +
       `(dispatch=${swProbe?.menuDispatch ?? "?"}); ` +
       `commands.onCommand.dispatch=${swProbe?.cmdDispatch ?? "?"}\n`,
+  );
+
+  /* --- 5b. the boundary above, probed instead of asserted ------------------ */
+  // Section 5 says no CDP input event can raise the menu click or the keystroke. That is a claim
+  // about the platform, so it is checked against the platform rather than believed:
+  //
+  //   * the browser's own protocol descriptor (`GET /json/protocol` on the debug port) lists 56
+  //     domains. `Extensions` is the only one that crosses into the extension surface, and it has
+  //     exactly seven commands: loadUnpacked, getExtensions, uninstall, triggerAction and the four
+  //     storage commands. Exactly one of those raises a user-facing event.
+  //   * `Input.dispatchKeyEvent`'s parameter list has no browser-command field — its `commands`
+  //     parameter is the editing-command list — so a key event cannot resolve an accelerator.
+  //
+  // So the action IS reachable and the keystroke is not. Given a tab target, `triggerAction`
+  // dispatches the real action and the real popup opens: a result produced by the browser's own
+  // action registry, not by navigating a target to the URL the popup happens to live at.
+  const extSurfaces = async () =>
+    (await cdp.send("Target.getTargets")).targetInfos
+      .filter((t) => String(t.url).startsWith(base))
+      .map((t) => String(t.url).slice(base.length));
+
+  // Counted, not de-duplicated. By the time section 5b runs, popup.html and sidepanel.html are
+  // already open several times over, so a set-style diff would report "nothing new" for a surface
+  // that did in fact appear a second time — and would report it for the negative check too, where
+  // that mistake would make the check pass vacuously. Nothing else runs between the two snapshots
+  // of each pair below, so a rise in the count is attributable to the one command in between.
+  const surfaceCounts = (list) =>
+    list.reduce((m, s) => Object.assign(m, { [s]: (m[s] ?? 0) + 1 }), {});
+  const appeared = (before, after) => {
+    const b = surfaceCounts(before);
+    const a = surfaceCounts(after);
+    return Object.keys(a).filter((s) => (a[s] ?? 0) > (b[s] ?? 0));
+  };
+
+  try {
+    await cdp.send("Target.createTarget", { url: "about:blank" });
+  } catch {
+    /* an existing tab will do */
+  }
+  await sleep(800);
+  const tabTarget = (await cdp.send("Target.getTargets")).targetInfos.find(
+    (t) => t.type === "tab",
+  );
+
+  const beforeAction = await extSurfaces();
+  let actionError = null;
+  let actionResult = null;
+  if (!tabTarget) {
+    actionError = "no tab target was exposed";
+  } else {
+    try {
+      actionResult = await cdp.send("Extensions.triggerAction", {
+        id: extId,
+        targetId: tabTarget.targetId,
+      });
+    } catch (e) {
+      actionError = e.message;
+    }
+  }
+  await sleep(2500);
+  const afterAction = await extSurfaces();
+  const raised = appeared(beforeAction, afterAction);
+  record(
+    "the browser's own action invocation raises the real popup",
+    !!actionResult && raised.some((s) => s.includes("popup.html")),
+    `result=${JSON.stringify(actionResult ?? null)} appeared=${snippet(raised)}` +
+      (actionError ? ` error=${actionError}` : ""),
+  );
+
+  // The control. Without it, "the keystroke raised nothing" cannot be told apart from "the surface
+  // is unobservable": both read as an empty list. Opening sidepanel.html by a route that is NOT a
+  // gesture proves the surface is observable, which is what gives the negative below its meaning.
+  const panel = await cdp.send("Target.createTarget", { url: `${base}/sidepanel.html` });
+  await sleep(1200);
+  const panelSurfaces = await extSurfaces();
+  record(
+    "control: sidepanel.html is observable as a browser surface",
+    !!panel.targetId && appeared(beforeAction, panelSurfaces).some((s) => s.includes("sidepanel.html")),
+    `appeared=${snippet(appeared(beforeAction, panelSurfaces))}`,
+  );
+
+  // The negative, now distinguishable from an invisible panel. `document.hasFocus()` is part of the
+  // check on purpose: if the renderer never had focus the accelerator could not have fired for a
+  // reason that has nothing to do with CDP, so an unfocused renderer must not read as a pass.
+  const { targetInfos: keyTargets } = await cdp.send("Target.getTargets");
+  const keyPage = keyTargets.find((t) => t.type === "page");
+  let keySession = null;
+  let keyFocused = null;
+  let injectedNew = [];
+  if (keyPage) {
+    keySession = (
+      await cdp.send("Target.attachToTarget", { targetId: keyPage.targetId, flatten: true })
+    ).sessionId;
+    await cdp.send("Runtime.enable", {}, keySession);
+    await cdp.send("Page.enable", {}, keySession);
+    await cdp.send("Page.bringToFront", {}, keySession).catch(() => {});
+    async function focusOf() {
+      const r = await cdp.send(
+        "Runtime.evaluate",
+        { expression: "document.hasFocus()", returnByValue: true },
+        keySession,
+      );
+      return r.result?.value ?? null;
+    }
+    keyFocused = await focusOf();
+    const mods = 2 | 8; // Ctrl | Shift
+    const chord = {
+      modifiers: mods,
+      windowsVirtualKeyCode: 72,
+      nativeVirtualKeyCode: 72,
+      code: "KeyH",
+      key: "H",
+    };
+    const beforeKey = await extSurfaces();
+    await cdp.send("Input.dispatchKeyEvent", { ...chord, type: "rawKeyDown" }, keySession);
+    await sleep(60);
+    await cdp.send("Input.dispatchKeyEvent", { ...chord, type: "keyUp" }, keySession);
+    await sleep(2500);
+    keyFocused = await focusOf();
+    injectedNew = appeared(beforeKey, await extSurfaces());
+  }
+  record(
+    "an injected Ctrl+Shift+H raises no side panel (the gesture no command can reach)",
+    !!keySession && keyFocused === true && injectedNew.length === 0,
+    keySession
+      ? `renderer focused=${JSON.stringify(keyFocused)} appeared=${snippet(injectedNew)}`
+      : "no page target to inject into",
+  );
+
+  // The side panel opening — which is the RESULT 8.12 names, and the one part of it that had no
+  // output at all. The browser binding and the handler dispatch were already covered; whether
+  // `chrome.sidePanel.open()` actually opens a panel in a real browser was not, and it is the only
+  // step a spec cannot reach, because a jsdom harness has no panel to open. It does open. Note the
+  // first attempt at this said the opposite, for a reason that had nothing to do with gestures and
+  // everything to do with geometry: the control sits at y=673 in a popup whose viewport is 582px
+  // tall, so an un-scrolled click lands outside the page and raises nothing. Scrolling it into view
+  // is what turns that false negative into this true positive, and `inView` is asserted rather than
+  // assumed so the artifact cannot come back silently.
+  const clickSurface = await openSurface(
+    cdp,
+    `${base}/popup.html`,
+    surfaceExpression(`${settleBadge}
+      return { badge: badge ? badge.textContent.trim() : null };`),
+  );
+  const panelBtn = await ev(
+    cdp,
+    clickSurface.sessionId,
+    `(() => {
+      const b = document.getElementById('btn-sidepanel');
+      if (!b) return { missing: true };
+      b.scrollIntoView({ block: 'center' });
+      const r = b.getBoundingClientRect();
+      return {
+        x: r.x + r.width / 2,
+        y: r.y + r.height / 2,
+        inView: r.top >= 0 && r.bottom <= window.innerHeight &&
+          r.left >= 0 && r.right <= window.innerWidth,
+      };
+    })()`,
+  );
+  const beforePanel = await extSurfaces();
+  if (!panelBtn?.missing) {
+    await cdp.send(
+      "Input.dispatchMouseEvent",
+      { type: "mousePressed", x: panelBtn.x, y: panelBtn.y, button: "left", clickCount: 1, buttons: 1 },
+      clickSurface.sessionId,
+    );
+    await sleep(80);
+    await cdp.send(
+      "Input.dispatchMouseEvent",
+      { type: "mouseReleased", x: panelBtn.x, y: panelBtn.y, button: "left", clickCount: 1, buttons: 0 },
+      clickSurface.sessionId,
+    );
+  }
+  await sleep(2500);
+  const panelOpened = appeared(beforePanel, await extSurfaces());
+  record(
+    "a trusted click on the popup's side-panel control opens a real side panel",
+    panelBtn?.inView === true && panelOpened.some((s) => s.includes("sidepanel.html")),
+    `extension=${extId} button=${JSON.stringify(panelBtn?.missing ?? null)} ` +
+      `inView=${panelBtn?.inView} appeared=${snippet(panelOpened)}`,
   );
 
   /* --- 6. options: an actual save, not just a render ----------------------- */
