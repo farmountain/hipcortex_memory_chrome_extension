@@ -5,10 +5,11 @@
 chain was run and each command's exit code recorded, the whole spec suite was run, and the
 end-to-end round trip was executed against a live core at `127.0.0.1:3030`. The quoted output is in
 `openspec/changes/cortexbridge-perception-layer/tasks.md`, groups 9 and 10. What is **not** executed
-is named rather than hidden: the two browser-manual gates (tasks 8.12 and 8.13), Consumer Mode,
-which has no installable host to test against (task 10.8), the POSIX leg of the cross-platform
-scripts (task 10.13), and everything core-side in G4 and G5. This document exists so that no goal
-here is ever reported as achieved without a quoted command output.
+is named rather than hidden: the two browser-manual gates (tasks 8.12 and 8.13), Consumer Mode's
+last leg — **Chrome itself** handing the port to a loaded extension, the one step no spec can run
+(tasks 10.8 and 10.14, risk 2) — the POSIX leg of the cross-platform scripts (task 10.13), and
+everything core-side in G4 and G5. This document exists so that no goal here is ever reported as
+achieved without a quoted command output.
 
 **How the claims were reached** is a separate document: `docs/CLARITY.md` states the order of
 resolution (read the artifact, run it, inspect the environment, self-prompt and falsify, and only then
@@ -685,9 +686,10 @@ Decisions made here without further consultation, each with the condition that w
    to be maintained and a sentence that quotes a suite of 832 tests is wrong the day the suite
    reaches 947. Run the gates for the numbers; quoted output is in `tasks.md` groups 9 and 10. That
    is a real advance, and it stops short of the product: the two browser-manual gates
-   (8.12, 8.13) are unrun, Consumer Mode has no host (risk 2), the POSIX leg of the scripts is
-   unrun (10.13), and no spec can observe a rendered banner or a provider's live DOM. A criterion is
-   still met only when its verification has been run and its output quoted — that rule did not relax
+   (8.12, 8.13) are unrun, Consumer Mode's registered leg is unrun — the host is built, installed
+   and answering on this machine, and only Chrome can hand it a port (risk 2) — the POSIX leg of
+   the scripts is unrun (10.13), and no spec can observe a rendered banner or a provider's live DOM.
+   A criterion is still met only when its verification has been run and its output quoted — that rule did not relax
    when the results turned green.
 5. **Semantic search plus a provider filter is not expressible against today's runtime.**
    `POST /memory/search` has no filter field. Tracked cross-repo as
