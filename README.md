@@ -30,7 +30,7 @@ It is built so that every claim about it is provable by a command: see [Developm
 | This extension | `0.2.2` | `package.json`, `public/manifest.json` |
 | HipCortex core it was measured against | `3.11.0` | every observation in [docs/PROTOCOL.md](./docs/PROTOCOL.md) |
 
-Re-measured 2026-09-19 rather than carried forward. The runtime answers its own version, and that
+Re-measured 2026-09-20 rather than carried forward. The runtime answers its own version, and that
 reply is what the second row names:
 
 ```
@@ -55,12 +55,26 @@ been measured by anything in this repository, and the version row above keeps sa
 that reason. This repository is the perception layer and never builds or ships the core, so that is
 an observation about the machine, not a task in this tree.
 
-The published channels are not part of that gap. Measured on 2026-09-19, the core's manifests agree
-with each other and with its latest release: the core `Cargo.toml`, `sdk/python/pyproject.toml` and
-the VS Code extension's `package.json` all declare `3.13.0`, and the `v3.13.0` release carries a
-wheel, four platform binaries and a `.vsix` under that same number. An earlier reading of the same
-manifest concluded that a published channel was mislabelled; it was not, and that conclusion has been
-withdrawn. What is stale is this machine's install. The only VS Code extension present is
+The published channels are a different matter, and one of them *is* part of that gap. Measured on
+2026-09-20, three of the core's four declaring surfaces agree with each other and with its latest
+release: `Cargo.toml`, `sdk/python/pyproject.toml` and the VS Code extension's `package.json` all
+declare `3.13.0`, and the `v3.13.0` release carries a wheel, four platform binaries and a `.vsix`
+under that same number. An earlier reading of the same manifest concluded that a published channel
+was mislabelled; that conclusion was wrong and stays withdrawn. What follows is a different fact
+rather than a revival of it.
+
+The two channels those manifests publish to do not agree with each other. PyPI serves
+`hipcortex 3.13.0`. The npm package `hipcortex`, whose `repository.directory` is `sdk/typescript`,
+serves **`0.5.2`**, published 2026-07-20, while its own source declares `3.12.0`. The cause is not a
+label: the core's `Publish npm package` workflow builds a valid tarball on every release and then
+stops at `npm error code ENEEDAUTH`, because the registry token it publishes with is not present.
+Every run that workflow has made has failed — forty of them, back to 2026-05-20, which is as far
+back as the API returns — so the npm channel has been stale for two months and sits on a different
+version line than every other surface the core publishes. That is a defect in the core repository,
+which this repository neither builds nor publishes; it is recorded here only because *the published
+channels are aligned* was a claim this README used to make and no longer can.
+
+What is stale on this machine is the install, not the label. The only VS Code extension present is
 `farmountain.hipcortex-memory-3.12.0`, and the server executable bundled inside it is 8,732,160
 bytes where the `v3.13.0` release publishes 8,739,840 — a different file, not a different label. The
 listener on port 3030 has been up since before that install, so it keeps answering the version it was
